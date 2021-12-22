@@ -23,9 +23,12 @@
 #ifndef MAV_MSGS_COMMON_H
 #define MAV_MSGS_COMMON_H
 
-#include "geometry_msgs/msg/point.hpp"
-#include <geometry_msgs/msg/quaternion.hpp>
-#include <geometry_msgs/msg/vector3.hpp>
+#ifdef ROS2_SUPPORT // ROS2 support is not enabled
+  #include "geometry_msgs/msg/point.hpp"
+  #include <geometry_msgs/msg/quaternion.hpp>
+  #include <geometry_msgs/msg/vector3.hpp>
+#endif
+
 #include <Eigen/Geometry>
 #include <boost/algorithm/clamp.hpp>
 
@@ -52,7 +55,7 @@ inline double MagnitudeOfGravity(const double height,
                         kGravity_b * sin_squared_twice_latitude) -
                        kGravity_c * height);
 }
-
+#ifdef ROS2_SUPPORT // ROS2 support is not enabled
 inline Eigen::Vector3d vector3FromMsg(const geometry_msgs::msg::Vector3& msg) {
   return Eigen::Vector3d(msg.x, msg.y, msg.z);
 }
@@ -98,6 +101,7 @@ inline void quaternionEigenToMsg(const Eigen::Quaterniond& eigen,
   msg->z = eigen.z();
   msg->w = eigen.w();
 }
+#endif
 
 /**
  * \brief Extracts the yaw part from a quaternion, using RPY / euler (z-y'-z'')
@@ -113,6 +117,8 @@ inline double yawFromQuaternion(const Eigen::Quaterniond& q) {
 inline Eigen::Quaterniond quaternionFromYaw(double yaw) {
   return Eigen::Quaterniond(Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()));
 }
+
+#ifdef ROS2_SUPPORT // ROS2 support is not enabled
 
 inline void setQuaternionMsgFromYaw(double yaw,
                                     geometry_msgs::msg::Quaternion* msg) {
@@ -131,6 +137,7 @@ inline void setAngularVelocityMsgFromYawRate(double yaw_rate,
   msg->y = 0.0;
   msg->z = yaw_rate;
 }
+#endif
 
 inline void getEulerAnglesFromQuaternion(const Eigen::Quaternion<double>& q,
                                          Eigen::Vector3d* euler_angles) {

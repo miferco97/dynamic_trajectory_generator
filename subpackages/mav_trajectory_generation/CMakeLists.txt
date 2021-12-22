@@ -7,7 +7,7 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
-find_package(geometry_msgs REQUIRED)
+# find_package(geometry_msgs REQUIRED)
 # find_package(glog REQUIRED)
 
 include(cmake_dependencies/glog_dependencies.cmake)
@@ -16,7 +16,6 @@ message(STATUS "GLOG Used config file: ${glog_CONFIG}")
 find_package(Eigen3 REQUIRED)
 
 include("cmake_dependencies/nlopt_dependencies.cmake")
-# find_package(NLopt REQUIRED)
 find_package(yaml-cpp REQUIRED) # Link against system catkin yaml-cpp if installed.
 message(STATUS "Used config file: ${yaml-cpp_CONFIG}")
 
@@ -37,8 +36,10 @@ include_directories(
   include
   include/${PROJECT_NAME}
   include/mav_msgs
+  include/geometry_msgs
   ${EIGEN3_INCLUDE_DIRS}
-  ${geometry_msgs_INCLUDE_DIRS}
+  # ${geometry_msgs_INCLUDE_DIRS}
+
 )
 
 set(SOURCE_CPP_FILES 

@@ -36,7 +36,5 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/main_trajectory_publisher.cpp ${SOURCE_CPP_FILES} ${HEADER_HPP_FILES})
 # target_link_libraries(${PROJECT_NAME}_node nlopt glog::glog
 
-# include(/usr/include/python2.7)
-
 add_executable(compilation_tests tests/compilation_tests.cpp ${SOURCE_CPP_FILES})
 target_link_libraries(compilation_tests mav_trajectory_generation python3.8)

@@ -81,7 +81,7 @@ public:
         }
     }
 
-    void plotTrajectory(){
+    void generate2Dplot(){
         namespace plt = matplotlibcpp;
         double t_start = traj_ptr_->getMinTime();
         double t_end = traj_ptr_->getMaxTime();
@@ -102,8 +102,38 @@ public:
             time[i] = t_eval;	
         }
         plt::plot(time, x_vec, "r-", time, y_vec, "g-", time, z_vec, "b-");
-        plt::show();
+        plt::show(true);
 
+    }
+
+    void generate3DPlot(){
+
+        namespace plt = matplotlibcpp;
+        double t_start = traj_ptr_->getMinTime();
+        double t_end = traj_ptr_->getMaxTime();
+        double dt = 0.1;
+        int n_samples = (t_end-t_start)/dt;
+
+        plt::figure();
+        std::vector<double> x_vec(n_samples), y_vec(n_samples), z_vec(n_samples);
+        std::vector<double> time(n_samples);
+        for (int i=0; i<n_samples; i++){
+            double t_eval = t_start + i*dt;
+            Eigen::VectorXd x_eval;
+            x_eval = traj_ptr_->evaluate(t_eval, mav_trajectory_generation::derivative_order::POSITION);
+            x_vec[i] = x_eval(0);
+            y_vec[i] = x_eval(1);
+            z_vec[i] = x_eval(2);
+            time[i] = t_eval;	
+        }
+        plt::plot3(x_vec, y_vec, z_vec);
+        plt::show(true);
+
+    }
+
+    void showPlots(){
+        namespace plt = matplotlibcpp;
+        // plt::show();
     }
 
 };

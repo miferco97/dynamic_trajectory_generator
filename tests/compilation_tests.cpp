@@ -15,5 +15,7 @@ int main (){
     vertices[4].addConstraint(mav_trajectory_generation::derivative_order::POSITION , Eigen::Vector3d(5, 7, 2));
 
     traj.generateNewTrajectory(vertices, 1.0f);
-    traj.plotTrajectory();
+    traj.generate2Dplot();
+    traj.generate3DPlot();
+    traj.showPlots();
 }

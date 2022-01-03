@@ -51,6 +51,13 @@ public:
 
     return waypoints;
   };
+  mav_trajectory_generation::Segment::Vector getSegments() const
+  {
+    mav_trajectory_generation::Segment::Vector segments;
+    std::lock_guard<std::mutex> lock(evaluate_mutex_);
+    trajectory_ptr_->getSegments(&segments);
+    return segments;
+  };
 
   double getMaxTime() const
   {

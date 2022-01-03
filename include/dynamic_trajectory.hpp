@@ -12,9 +12,9 @@
 #include "mav_trajectory_generation/polynomial_optimization_nonlinear.h"
 #include "mav_trajectory_generation/trajectory.h"
 
-#include "logging_utils.hpp"
 #include "matplotlibcpp.h"
 #include "thread_safe_trajectory.hpp"
+#include "utils/logging_utils.hpp"
 
 #define MAV_MAX_ACCEL (1 * 9.81f)
 
@@ -198,6 +198,10 @@ namespace dynamic_traj_generator
     mav_trajectory_generation::Vertex::Vector getWaypoints()
     {
       return traj_.getWaypoints();
+    }
+    mav_trajectory_generation::Segment::Vector getSegments()
+    {
+      return traj_.getSegments();
     }
   };
 

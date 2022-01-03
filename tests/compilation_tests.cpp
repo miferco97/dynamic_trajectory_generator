@@ -2,6 +2,7 @@
 
 #include "dynamic_trajectory.hpp"
 #include "traj_evaluator.hpp"
+#include "utils/plotting_utils.hpp"
 #include <iostream>
 
 int main()
@@ -17,7 +18,7 @@ int main()
     vertices[3].addConstraint(mav_trajectory_generation::derivative_order::POSITION, Eigen::Vector3d(4, -3, 4));
     vertices[4].addConstraint(mav_trajectory_generation::derivative_order::POSITION, Eigen::Vector3d(5, 7, 2));
 
-    traj.generateTrajectoryFromScratch(vertices, 10.0f);
+    traj.generateTrajectoryFromScratch(vertices, 1.0f);
     TrajEvaluator eval;
     eval.runEvaluation(traj);
     // traj.generate2Dplot();

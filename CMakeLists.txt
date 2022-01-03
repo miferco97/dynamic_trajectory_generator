@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 set(PROJECT_NAME dynamic_trajectory_generator)
 project(${PROJECT_NAME})
 
-# Default to C++20
+# Default to C++17
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(Eigen3 REQUIRED)

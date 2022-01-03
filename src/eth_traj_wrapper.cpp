@@ -105,14 +105,14 @@ void ETHSplineGenerator::genTraj(const std::vector<std::vector<float>> &waypoint
     trajectory_mutex_.unlock();
 
     vertices[0].addConstraint(mav_trajectory_generation::derivative_order::POSITION, Eigen::Vector3d(refs[0][0],
-                                                                                                                  refs[1][0],
-                                                                                                                  refs[2][0]));
+                                                                                                     refs[1][0],
+                                                                                                     refs[2][0]));
     vertices[0].addConstraint(mav_trajectory_generation::derivative_order::VELOCITY, Eigen::Vector3d(refs[0][1],
-                                                                                                                  refs[1][1],
-                                                                                                                  refs[2][1]));
+                                                                                                     refs[1][1],
+                                                                                                     refs[2][1]));
     vertices[0].addConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, Eigen::Vector3d(refs[0][2],
-                                                                                                                      refs[1][2],
-                                                                                                                      refs[2][2]));
+                                                                                                         refs[1][2],
+                                                                                                         refs[2][2]));
 
     for (int i = 1; i < vertices.size(); i++)
     {
@@ -124,116 +124,113 @@ void ETHSplineGenerator::genTraj(const std::vector<std::vector<float>> &waypoint
     vertices[0].addConstraint(mav_trajectory_generation::derivative_order::VELOCITY, Eigen::Vector3d(0, 0, 0));
     vertices[0].addConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, Eigen::Vector3d(0, 0, 0));
 
- 
     // begin from previous trajectory references for the first 3 points
     RCLCPP_INFO(node_ptr_->get_logger(), "Generating new trajectory from previous trajectory");
     trajectory_from_scratch = false;
   }
-    /*  
+  /*
 
-    static std::array<std::array<float, 3>, 4> refs;
+  static std::array<std::array<float, 3>, 4> refs;
 
-    n_points = n_points + n_points_added - 1; // -1 for the previous point that is not added
-    vertices = std::vector<mav_trajectory_generation::Vertex>(n_points, dimension_);
+  n_points = n_points + n_points_added - 1; // -1 for the previous point that is not added
+  vertices = std::vector<mav_trajectory_generation::Vertex>(n_points, dimension_);
 
-    uint16_t final_n_points = 0;
-    uint16_t index_waypoint = 1;
+  uint16_t final_n_points = 0;
+  uint16_t index_waypoint = 1;
 
-    float t_evaluate;
-    Eigen::Vector3d last_position;
-    Eigen::Vector3d actual_position;
-    Eigen::Vector3d first_position;
+  float t_evaluate;
+  Eigen::Vector3d last_position;
+  Eigen::Vector3d actual_position;
+  Eigen::Vector3d first_position;
 
-    // at the beggining we consider that the first waypoint is included in previous trajectory
-    bool waypoints_included_in_previous_traj = true;
+  // at the beggining we consider that the first waypoint is included in previous trajectory
+  bool waypoints_included_in_previous_traj = true;
 
-    for (uint8_t i = 0; i < vertices.size(); i++)
+  for (uint8_t i = 0; i < vertices.size(); i++)
+  {
+    // Add waypoints according with previous trajectory
+    if (i >= 0 && i < n_points_added)
     {
-      // Add waypoints according with previous trajectory
-      if (i >= 0 && i < n_points_added)
+      t_evaluate = atom_last_t_evaluated_ + (2.0f * i) * atom_average_trajectory_generation_elapsed_time_;
+      RCLCPP_INFO(node_ptr_->get_logger(), "last t_evaluated = %6.4f with final time = %6.4f", t_evaluate, (float)atom_end_time_);
+      evaluateTrajectory(t_evaluate, refs);
+      actual_position = Eigen::Vector3d(refs[0][0], refs[1][0], refs[2][0]);
+
+      // // check if added waypoints have the same position
+      // if (i != 0 && (last_position - actual_position).norm() < 0.01)
+      // {
+      //   RCLCPP_WARN(node_ptr_->get_logger(), "Waypoint[%d]  wont be added removed because it is too close to previous waypoint", i);
+      //   // vertices_to_remove.emplace_back(i);
+      // }
+      // else
+      // {
+      if (i == 0)
       {
-        t_evaluate = atom_last_t_evaluated_ + (2.0f * i) * atom_average_trajectory_generation_elapsed_time_;
-        RCLCPP_INFO(node_ptr_->get_logger(), "last t_evaluated = %6.4f with final time = %6.4f", t_evaluate, (float)atom_end_time_);
-        evaluateTrajectory(t_evaluate, refs);
-        actual_position = Eigen::Vector3d(refs[0][0], refs[1][0], refs[2][0]);
-
-        // // check if added waypoints have the same position
-        // if (i != 0 && (last_position - actual_position).norm() < 0.01)
-        // {
-        //   RCLCPP_WARN(node_ptr_->get_logger(), "Waypoint[%d]  wont be added removed because it is too close to previous waypoint", i);
-        //   // vertices_to_remove.emplace_back(i);
-        // }
-        // else
-        // {
-        if (i == 0)
-        {
-          trajectory_mutex_.lock();
-          refs = last_sended_refs_;
-          trajectory_mutex_.unlock();
+        trajectory_mutex_.lock();
+        refs = last_sended_refs_;
+        trajectory_mutex_.unlock();
 
 
-          vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::POSITION, Eigen::Vector3d(refs[0][0],
-                                                                                                                        refs[1][0],
-                                                                                                                        refs[2][0]));
-          vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::VELOCITY, Eigen::Vector3d(refs[0][1],
-                                                                                                                        refs[1][1],
-                                                                                                                        refs[2][1]));
-          vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, Eigen::Vector3d(refs[0][2],
-                                                                                                                            refs[1][2],
-                                                                                                                            refs[2][2]));
-          first_position = actual_position;
-          final_n_points++;
-        }
-        // }
-        last_position = actual_position;
+        vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::POSITION, Eigen::Vector3d(refs[0][0],
+                                                                                                                      refs[1][0],
+                                                                                                                      refs[2][0]));
+        vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::VELOCITY, Eigen::Vector3d(refs[0][1],
+                                                                                                                      refs[1][1],
+                                                                                                                      refs[2][1]));
+        vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, Eigen::Vector3d(refs[0][2],
+                                                                                                                          refs[1][2],
+                                                                                                                          refs[2][2]));
+        first_position = actual_position;
+        final_n_points++;
       }
+      // }
+      last_position = actual_position;
+    }
+    else
+    {
+      // simplify the trajectory by removing the points that are too close to the previous one
+      auto &zero = first_position; // TODO: rename
+      auto &hero = last_position;
+      auto waypoint_position = Eigen::Vector3d(waypoints[0][index_waypoint],
+                                               waypoints[1][index_waypoint],
+                                               waypoints[2][index_waypoint]) -
+                               zero;
+
+      auto from_cero_to_hero = hero - zero; // TODO: change name
+
+      if (waypoints_included_in_previous_traj && (from_cero_to_hero.norm()*2.0f > waypoint_position.norm()))
+        {
+
+          RCLCPP_WARN(node_ptr_->get_logger(), "Waypoint[%d]  wont be added removed because it is too close to previous waypoint", i);
+        }
       else
       {
-        // simplify the trajectory by removing the points that are too close to the previous one
-        auto &zero = first_position; // TODO: rename
-        auto &hero = last_position;
-        auto waypoint_position = Eigen::Vector3d(waypoints[0][index_waypoint],
-                                                 waypoints[1][index_waypoint],
-                                                 waypoints[2][index_waypoint]) -
-                                 zero;
-
-        auto from_cero_to_hero = hero - zero; // TODO: change name
-
-        if (waypoints_included_in_previous_traj && (from_cero_to_hero.norm()*2.0f > waypoint_position.norm()))
-          {
-
-            RCLCPP_WARN(node_ptr_->get_logger(), "Waypoint[%d]  wont be added removed because it is too close to previous waypoint", i);
-          }
-        else
-        {
-          waypoints_included_in_previous_traj = false;
-          vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::POSITION,
-                                                 Eigen::Vector3d(waypoints[0][index_waypoint],
-                                                                 waypoints[1][index_waypoint],
-                                                                 waypoints[2][index_waypoint]));
-          final_n_points++;
-        }
-        index_waypoint++;
+        waypoints_included_in_previous_traj = false;
+        vertices[final_n_points].addConstraint(mav_trajectory_generation::derivative_order::POSITION,
+                                               Eigen::Vector3d(waypoints[0][index_waypoint],
+                                                               waypoints[1][index_waypoint],
+                                                               waypoints[2][index_waypoint]));
+        final_n_points++;
       }
+      index_waypoint++;
     }
-    // Remove vertices that are not added
-    if (final_n_points > n_points)
-    {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Final_n_points = %d is higher than n_points = %d", final_n_points, n_points);
-    }
-    vertices.resize(final_n_points, dimension_);
-    n_points = final_n_points;
-    
-    vertices[vertices.size() - 1].addConstraint(mav_trajectory_generation::derivative_order::VELOCITY, Eigen::Vector3d(0, 0, 0));
-    vertices[vertices.size() - 1].addConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, Eigen::Vector3d(0, 0, 0));
   }
-  */
+  // Remove vertices that are not added
+  if (final_n_points > n_points)
+  {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Final_n_points = %d is higher than n_points = %d", final_n_points, n_points);
+  }
+  vertices.resize(final_n_points, dimension_);
+  n_points = final_n_points;
 
+  vertices[vertices.size() - 1].addConstraint(mav_trajectory_generation::derivative_order::VELOCITY, Eigen::Vector3d(0, 0, 0));
+  vertices[vertices.size() - 1].addConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, Eigen::Vector3d(0, 0, 0));
+}
+*/
 
   /**********************************************************************/
   /************************** FIN DE CUARENTENA ********************************/
   /**********************************************************************/
-
 
   // last point has velocity and acceleration zero
 

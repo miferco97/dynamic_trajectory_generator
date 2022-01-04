@@ -51,12 +51,15 @@ namespace dynamic_traj_generator
     Eigen::Vector3d original_position_;
     Eigen::Vector3d actual_position_;
     double t_assigned_;
-    std::string name_;
+    std::string name_ = "";
     int index_ = -1;
 
     GaussianModifier modifiers_[3];
 
   public:
+    DynamicWaypoint()
+        : vertex_(mav_trajectory_generation::Vertex(3)){};
+
     DynamicWaypoint(const mav_trajectory_generation::Vertex &vertex, int index, const std::string &name = "")
         : DynamicWaypoint(vertex, name)
     {
@@ -77,6 +80,17 @@ namespace dynamic_traj_generator
       // vertex_.addConstraint(mav_trajectory_generation::derivative_order::POSITION, original_position_);
       actual_position_ = original_position_;
     };
+
+    // copy constructor
+    DynamicWaypoint(const DynamicWaypoint &other)
+        : vertex_(other.vertex_), original_position_(other.original_position_), actual_position_(other.actual_position_),
+          t_assigned_(other.t_assigned_), name_(other.name_), index_(other.index_)
+    {
+      for (int i = 0; i < 3; i++)
+      {
+        modifiers_[i] = other.modifiers_[i];
+      }
+    }
 
     typedef std::vector<DynamicWaypoint> Vector;
 
@@ -115,6 +129,9 @@ namespace dynamic_traj_generator
     inline mav_trajectory_generation::Vertex getVertex() const { return vertex_; };
     inline std::string getName() const { return name_; };
     inline int getIndex() const { return index_; };
+    inline Eigen::Vector3d getOriginalPosition() const { return original_position_; };
+    inline Eigen::Vector3d getActualPosition() const { return actual_position_; };
+    inline double getTime() const { return t_assigned_; };
   };
 
   // void setIndexforDynamicWaypoint(DynamicWaypoint::Vector &waypoints)
@@ -179,6 +196,20 @@ namespace dynamic_traj_generator
           break;
         }
       }
+    };
+
+    bool obtainDynamicWaypoints(const std::string &waypoint_name, DynamicWaypoint &waypoint)
+    {
+      std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+      for (auto &waypoint_ : dynamic_waypoints_)
+      {
+        if (waypoint_.getName() == waypoint_name)
+        {
+          waypoint = waypoint_;
+          return true;
+        }
+      }
+      return false;
     };
 
     bool evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs, bool only_positions = false);

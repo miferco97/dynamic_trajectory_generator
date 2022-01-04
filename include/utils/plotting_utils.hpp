@@ -21,6 +21,7 @@ class TrajectoryPlotter
 private:
   long number_;
   long number2d_;
+  long number_refs_;
 
 public:
   // enum with 3 printing modes : Line, Waypoint, UAV
@@ -32,13 +33,18 @@ public:
   };
 
   TrajectoryPlotter(long number = 1)
-      : number_(number * 2), number2d_(number * 2 + 1)
+      : number_(number * 3), number2d_(number * 3 + 1), number_refs_(number * 3 + 2)
   {
     uav_pose_x_ = std::vector<double>(1);
     uav_pose_y_ = std::vector<double>(1);
     uav_pose_z_ = std::vector<double>(1);
     uav_time_ = std::vector<double>(1);
+    uav_refs_ = std::vector<dynamic_traj_generator::References>();
+    uav_refs_time_ = std::vector<double>();
+
     static_plots_3d_.clear();
+    static_plots_2d_.clear();
+
     plot_thread_ = std::thread(&TrajectoryPlotter::plot, this);
     ended_ = false;
   }
@@ -52,6 +58,8 @@ public:
   std::vector<double> uav_pose_y_;
   std::vector<double> uav_pose_z_;
   std::vector<double> uav_time_;
+  std::vector<dynamic_traj_generator::References> uav_refs_;
+  std::vector<double> uav_refs_time_;
 
   std::vector<std::tuple<std::vector<double>, // x
                          std::vector<double>, // y
@@ -146,6 +154,8 @@ public:
     uav_pose_z_[0] = refs.position(2);
     uav_time_[0] = time;
     mutex_.unlock();
+    uav_refs_.emplace_back(refs);
+    uav_refs_time_.emplace_back(time);
     update_plot_ = true;
   };
 
@@ -163,6 +173,49 @@ public:
   {
     plt::figure(number_);
     plt::cla();
+  }
+
+  void plotUAVrefs()
+  {
+    DYNAMIC_LOG("plotting uav refs");
+    if (uav_refs_.size() != uav_refs_time_.size())
+    {
+      DYNAMIC_LOG("uav refs and time size not equal");
+      return;
+    }
+
+    plt::figure(number_refs_ * 2);
+    plt::cla();
+    for (int i = 0; i < 3; i++)
+    {
+      plt::subplot(3, 1, i + 1);
+      switch (i)
+      {
+      case 0:
+        plt::title("UAV position");
+        break;
+      case 1:
+        plt::title("UAV velocity");
+        break;
+      case 2:
+        plt::title("UAV acceleration");
+        break;
+      }
+
+      std::vector<double> x(uav_refs_.size());
+      std::vector<double> y(uav_refs_.size());
+      std::vector<double> z(uav_refs_.size());
+
+      for (int j = 0; j < uav_refs_.size(); j++)
+      {
+        x[j] = uav_refs_[j].operator[](i)(0);
+        y[j] = uav_refs_[j].operator[](i)(1);
+        z[j] = uav_refs_[j].operator[](i)(2);
+      }
+      plt::plot(uav_refs_time_, x, "r-", uav_refs_time_, y, "g-", uav_refs_time_, z, "b-");
+      plt::show(false);
+      plt::pause(0.01);
+    }
   }
 
   void plot2dGraph(const std::vector<double> &time, const std::vector<double> &x, const std::vector<double> &y,
@@ -263,6 +316,7 @@ public:
       plt::show(false);
       update_plot_ = false;
     }
+    plotUAVrefs();
     DYNAMIC_LOG("Close figure to continue");
     plt::show(true);
     plt::close();

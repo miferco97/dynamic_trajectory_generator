@@ -23,12 +23,18 @@ int main()
     {
         waypoints.push_back(vertices[i]);
     }
-    // waypoints[0].setName("start");
-    // waypoints[1].setName("waypoint1");
+    waypoints[0].setName("start");
+    waypoints[1].setName("waypoint1");
     waypoints[2].setName("waypoint2");
+    waypoints[3].setName("waypoint3");
+    waypoints[4].setName("waypoint4");
 
-    traj.generateTrajectory(waypoints, 1.0f);
+    traj.generateTrajectory(waypoints, 10.0f);
     TrajEvaluator eval;
+    // eval.addWaypointModifiers("waypoint1");
+    eval.addWaypointModifiers("waypoint2");
+    eval.addWaypointModifiers("waypoint3");
+
     eval.runEvaluation(traj);
     // traj.generate2Dplot();
     // traj.generate3DPlot();

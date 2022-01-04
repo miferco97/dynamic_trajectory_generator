@@ -26,7 +26,7 @@ namespace dynamic_traj_generator
 
   double getCummulativeTime(const mav_trajectory_generation::Segment::Vector &segments, const int &waypoint_index)
   {
-    if (waypoint_index < 0 || waypoint_index >= segments.size())
+    if (waypoint_index < 0 || waypoint_index > segments.size())
     {
       throw std::out_of_range("[GetCumulativeTime]: Waypoint index out of range");
     }

@@ -2,6 +2,7 @@
 #define __DYNAMIC_TRAJECTORY_HPP__
 
 #include <chrono>
+#include <exception>
 #include <future>
 #include <iostream>
 #include <memory>
@@ -15,6 +16,7 @@
 #include "matplotlibcpp.h"
 #include "thread_safe_trajectory.hpp"
 #include "utils/logging_utils.hpp"
+#include "utils/traj_modifiers.hpp"
 
 #define MAV_MAX_ACCEL (1 * 9.81f)
 
@@ -26,12 +28,105 @@ namespace dynamic_traj_generator
     Eigen::Vector3d position;
     Eigen::Vector3d velocity;
     Eigen::Vector3d acceleration;
+
+    Eigen::Vector3d &operator[](int index)
+    {
+      switch (index)
+      {
+      case 0:
+        return position;
+      case 1:
+        return velocity;
+      case 2:
+        return acceleration;
+      default:
+        throw std::runtime_error("Invalid index");
+      }
+    }
   };
+
+  class DynamicWaypoint
+  {
+    mav_trajectory_generation::Vertex vertex_;
+    Eigen::Vector3d original_position_;
+    Eigen::Vector3d actual_position_;
+    double t_assigned_;
+    std::string name_;
+    int index_ = -1;
+
+    GaussianModifier modifiers_[3];
+
+  public:
+    DynamicWaypoint(const mav_trajectory_generation::Vertex &vertex, int index, const std::string &name = "")
+        : DynamicWaypoint(vertex, name)
+    {
+      index_ = index;
+    }
+
+    DynamicWaypoint(const mav_trajectory_generation::Vertex &vertex, const std::string &name = "")
+        : name_(name), vertex_(vertex)
+    // : name_(name), vertex_(3)
+    {
+      Eigen::VectorXd pos;
+      vertex_.getConstraint(0, &pos);
+      original_position_[0] = pos[0];
+      original_position_[1] = pos[1];
+      original_position_[2] = pos[2];
+
+      DYNAMIC_LOG(original_position_.transpose());
+      // vertex_.addConstraint(mav_trajectory_generation::derivative_order::POSITION, original_position_);
+      actual_position_ = original_position_;
+    };
+
+    typedef std::vector<DynamicWaypoint> Vector;
+
+    inline void setIndex(const int &index) { index_ = index; };
+    inline void setTime(const double &t)
+    {
+      for (int i = 0; i < 3; i++)
+      {
+        modifiers_[i].setModifierTime(t);
+      }
+      t_assigned_ = t;
+    };
+    inline void setName(const std::string &name) { name_ = name; };
+    inline void displaceIndex(const int &displacement) { index_ += displacement; };
+
+    void
+    setActualPosition(Eigen::Vector3d position)
+    {
+      actual_position_ = position;
+      for (int i = 0; i < 3; i++)
+      {
+        modifiers_[i].setDifference(actual_position_[i] - original_position_[i]);
+      }
+    }
+    Eigen::Vector3d trajectoryCompensation(double t, int derivative_order = 0)
+    {
+
+      Eigen::Vector3d compensation;
+      for (int i = 0; i < 3; i++)
+      {
+        compensation[i] = modifiers_[i](t, derivative_order);
+      }
+      return compensation;
+    };
+    // get vertex
+    inline mav_trajectory_generation::Vertex getVertex() const { return vertex_; };
+    inline std::string getName() const { return name_; };
+    inline int getIndex() const { return index_; };
+  };
+
+  // void setIndexforDynamicWaypoint(DynamicWaypoint::Vector &waypoints)
+  // {
+  //   for (int i = 0; i < waypoints.size(); i++)
+  //   {
+  //     waypoints[i].setIndex(i);
+  //   }
+  // }
 
   class DynamicTrajectory
   {
-  public:
-    DynamicTrajectory(){};
 
   private:
     // const int derivative_to_optimize_ = mav_trajectory_generation::derivative_order::JERK;
@@ -42,7 +137,7 @@ namespace dynamic_traj_generator
     std::future<ThreadSafeTrajectory> future_traj_;
 
     const int dimension_ = 3;
-    bool from_scratch_ = true;
+    std::atomic_bool from_scratch_ = true;
     const double a_max_ = MAV_MAX_ACCEL;
 
     double last_t_eval_ = 0.0f;
@@ -50,159 +145,68 @@ namespace dynamic_traj_generator
 
     std::mutex traj_mutex_;
     std::mutex future_mutex_;
+    std::atomic_bool has_dynamic_waypoints_ = false;
 
-  private:
-    bool checkTrajectoryGenerated()
+    std::mutex dynamic_waypoints_mutex_;
+    dynamic_traj_generator::DynamicWaypoint::Vector dynamic_waypoints_;
+    dynamic_traj_generator::DynamicWaypoint::Vector temporal_dynamic_waypoints_;
+
+    // std::atomic_bool has_traj_ = false;
+
+  public:
+    DynamicTrajectory(){};
+
+    double getMaxTime();
+    double getMinTime();
+
+    inline mav_trajectory_generation::Vertex::Vector getWaypoints() { return traj_.getWaypoints(); }
+    inline mav_trajectory_generation::Segment::Vector getSegments() { return traj_.getSegments(); }
+
+    void generateTrajectory(const mav_trajectory_generation::Vertex::Vector &waypoints, const float &max_speed);
+    void generateTrajectory(const dynamic_traj_generator::DynamicWaypoint::Vector &waypoints, const float &max_speed);
+
+    void modifyWaypoint(const std::string &name, const Eigen::Vector3d &position)
     {
-      if (traj_ == nullptr)
+      std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+      for (auto &waypoint : dynamic_waypoints_)
       {
-        future_mutex_.lock();
-        if (future_traj_.valid())
+        if (waypoint.getName() == name)
         {
-          future_traj_.wait();
-          future_mutex_.unlock();
-          swapTrajectory();
-        }
-        else
-        {
-          DYNAMIC_LOG("[!ERROR!] Trajectory not initialized");
-          future_mutex_.unlock();
-          return false;
+          DYNAMIC_LOG("Modifying waypoint");
+          DYNAMIC_LOG(waypoint.getName());
+
+          waypoint.setActualPosition(position);
+          break;
         }
       }
-      return true;
-    }
+    };
+
+    bool evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs, bool only_positions = false);
 
   private:
-    ThreadSafeTrajectory computeTrajectory(const mav_trajectory_generation::Vertex::Vector &vertices,
-                                           const float &max_speed,
-                                           const bool &lineal_optimization = false)
+    void selectProperTrajectoryGenerationMethod(const mav_trajectory_generation::Vertex::Vector &waypoints, const float &max_speed)
     {
-      const int N = 10;
-      std::shared_ptr<mav_trajectory_generation::Trajectory> trajectory = std::make_shared<mav_trajectory_generation::Trajectory>();
-      auto segment_times = mav_trajectory_generation::estimateSegmentTimes(vertices, max_speed, this->a_max_);
-
-      // Optimizer
-      if (lineal_optimization)
+      if (from_scratch_)
       {
-        mav_trajectory_generation::PolynomialOptimization<N> opt(dimension_);
-        opt.setupFromVertices(vertices, segment_times, derivative_to_optimize_);
-        opt.solveLinear();
-        opt.getTrajectory((mav_trajectory_generation::Trajectory *)trajectory.get());
+        generateTrajectoryFromScratch(waypoints, max_speed);
       }
       else
       {
-        mav_trajectory_generation::NonlinearOptimizationParameters parameters;
-        parameters.max_iterations = 2000;
-        parameters.f_rel = 0.05;
-        parameters.x_rel = 0.1;
-        parameters.time_penalty = 200.0;
-        parameters.initial_stepsize_rel = 0.1;
-        // parameters.inequality_constraint_tolerance = 0.1;
-        parameters.inequality_constraint_tolerance = 0.2;
-
-        mav_trajectory_generation::PolynomialOptimizationNonLinear<N> opt(dimension_, parameters);
-        opt.setupFromVertices(vertices, segment_times, derivative_to_optimize_);
-        opt.addMaximumMagnitudeConstraint(mav_trajectory_generation::derivative_order::VELOCITY, max_speed);
-        opt.addMaximumMagnitudeConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, a_max_);
-        opt.optimize();
-        opt.getTrajectory((mav_trajectory_generation::Trajectory *)trajectory.get());
+        // throw not implemented exception
+        throw std::runtime_error("Not implemented");
       }
-      return ThreadSafeTrajectory(trajectory);
     };
 
-  public:
     void generateTrajectoryFromScratch(const mav_trajectory_generation::Vertex::Vector &vertices,
-                                       const float &max_speed)
-    {
-      std::lock_guard<std::mutex> lock(future_mutex_);
-      future_traj_ = std::async(std::launch::async, &DynamicTrajectory::computeTrajectory, this, vertices, max_speed, false);
-    };
-
-  public:
-    bool evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs, bool only_positions = false)
-    {
-      const std::lock_guard<std::mutex> lock(traj_mutex_);
-      float t_eval = t + t_offset_;
-      last_t_eval_ = t_eval;
-      return getRefs(traj_, t_eval, refs, only_positions);
-    }
-
-  private:
-    void swapTrajectory()
-    {
-      const std::lock_guard<std::mutex> lock(future_mutex_);
-      traj_ = std::move(future_traj_.get());
-      last_t_eval_ = 0.0f;
-      // waiting_for_traj_ = false;
-      DYNAMIC_LOG("Trajectory swapped");
-    };
-
+                                       const float &max_speed);
+    bool checkTrajectoryGenerated();
+    ThreadSafeTrajectory computeTrajectory(const mav_trajectory_generation::Vertex::Vector &vertices,
+                                           const float &max_speed,
+                                           const bool &lineal_optimization = false);
+    void swapTrajectory();
     bool getRefs(const ThreadSafeTrajectory &traj,
                  float t_eval, dynamic_traj_generator::References &refs,
-                 const bool only_position = false)
-    {
-
-      if (t_eval < traj.getMinTime())
-      {
-        DYNAMIC_LOG("[!ERROR!] Time out of bounds");
-        return false;
-      }
-
-      if (t_eval > traj.getMaxTime() - 0.01)
-      {
-        t_eval = traj.getMaxTime() - 0.01;
-      }
-
-      refs.position = traj.evaluate(t_eval, mav_trajectory_generation::derivative_order::POSITION);
-      if (only_position)
-        return true;
-      refs.velocity = traj.evaluate(t_eval, mav_trajectory_generation::derivative_order::VELOCITY);
-      refs.acceleration = traj.evaluate(t_eval, mav_trajectory_generation::derivative_order::ACCELERATION);
-
-      return true;
-    }
-
-  public:
-    void printTrajectory()
-    {
-      if (!checkTrajectoryGenerated())
-        return;
-      double t_start = traj_.getMinTime();
-      double t_end = traj_.getMaxTime();
-      double dt = 0.1;
-      for (double t_eval = t_start; t_eval < t_end; t_eval += dt)
-      {
-        Eigen::VectorXd x_eval;
-        x_eval = traj_.evaluate(t_eval, mav_trajectory_generation::derivative_order::POSITION);
-        std::cout << "t: " << t_eval << " x: " << x_eval.transpose() << std::endl;
-      }
-    }
-    double getMaxTime()
-    {
-      if (!checkTrajectoryGenerated())
-        return 0.0;
-      return traj_.getMaxTime();
-    }
-    double getMinTime()
-    {
-      if (!checkTrajectoryGenerated())
-        return 0.0;
-      return traj_.getMinTime();
-    }
-
-    void generate2Dplot();
-    void generate3DPlot();
-    void showPlots();
-
-    mav_trajectory_generation::Vertex::Vector getWaypoints()
-    {
-      return traj_.getWaypoints();
-    }
-    mav_trajectory_generation::Segment::Vector getSegments()
-    {
-      return traj_.getSegments();
-    }
+                 const bool only_position = false);
   };
 
 } // namespace mav_planning

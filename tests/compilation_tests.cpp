@@ -18,7 +18,16 @@ int main()
     vertices[3].addConstraint(mav_trajectory_generation::derivative_order::POSITION, Eigen::Vector3d(4, -3, 4));
     vertices[4].addConstraint(mav_trajectory_generation::derivative_order::POSITION, Eigen::Vector3d(5, 7, 2));
 
-    traj.generateTrajectoryFromScratch(vertices, 1.0f);
+    dynamic_traj_generator::DynamicWaypoint::Vector waypoints;
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        waypoints.push_back(vertices[i]);
+    }
+    // waypoints[0].setName("start");
+    // waypoints[1].setName("waypoint1");
+    waypoints[2].setName("waypoint2");
+
+    traj.generateTrajectory(waypoints, 1.0f);
     TrajEvaluator eval;
     eval.runEvaluation(traj);
     // traj.generate2Dplot();

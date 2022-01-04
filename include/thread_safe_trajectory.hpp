@@ -22,6 +22,11 @@ private:
 
 public:
   ThreadSafeTrajectory(){};
+  ~ThreadSafeTrajectory()
+  {
+    std::lock_guard<std::mutex> lock(evaluate_mutex_);
+    std::lock_guard<std::mutex> lock_time(time_mutex_);
+  };
   ThreadSafeTrajectory(const ThreadSafeTrajectory &other)
   {
     this->reset(other.trajectory_ptr_);

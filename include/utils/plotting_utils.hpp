@@ -2,6 +2,7 @@
 #define __PLOTTING_UTILS_HPP__
 
 #include <chrono>
+#include <exception>
 #include <iostream>
 #include <map>
 #include <random>
@@ -17,12 +18,19 @@ static char dist[] = {'r', 'g', 'b', 'c', 'm', 'y', 'k'};
 
 class TrajectoryPlotter
 {
-  // auto traj_ptr = getTrajectoryPtr();
 private:
   long number_;
   long number2d_;
 
 public:
+  // enum with 3 printing modes : Line, Waypoint, UAV
+  enum class PlotMode
+  {
+    LINE,
+    WAYPOINT,
+    UAV
+  };
+
   TrajectoryPlotter(long number = 1)
       : number_(number * 2), number2d_(number * 2 + 1)
   {
@@ -45,11 +53,11 @@ public:
   std::vector<double> uav_pose_z_;
   std::vector<double> uav_time_;
 
-  std::vector<std::tuple<std::vector<double>,                // x
-                         std::vector<double>,                // y
-                         std::vector<double>,                // z
-                         std::map<std::string, std::string>, // options
-                         long>                               // number
+  std::vector<std::tuple<std::vector<double>, // x
+                         std::vector<double>, // y
+                         std::vector<double>, // z
+                         std::string,         // color
+                         PlotMode>            // plotMode
               >
       static_plots_3d_;
 
@@ -57,9 +65,9 @@ public:
                          std::vector<double>, // x
                          std::vector<double>, // y
                          std::vector<double>, // z
-                         bool,                // only_waypoints
-                         long>                // number
-              >
+                         std::string,         // color
+                         PlotMode             // plotMode>
+                         >>
       static_plots_2d_;
 
   std::atomic_bool ended_;
@@ -81,9 +89,6 @@ public:
     auto plot_z = std::vector<double>(n_samples);
     auto plot_time = std::vector<double>(n_samples);
 
-    srand(time(NULL));
-    std::string color(1, dist[rand() % 7]);
-
     dynamic_traj_generator::References refs;
     for (int i = 0; i < n_samples; i++)
     {
@@ -95,11 +100,11 @@ public:
       plot_time[i] = t_eval;
     }
 
-    std::map<std::string, std::string> style;
-    style["color"] = color;
+    srand(time(NULL));
+    std::string color(1, dist[rand() % 7]);
 
-    static_plots_3d_.emplace_back(plot_x, ploy_y, plot_z, style, number_);
-    static_plots_2d_.emplace_back(plot_time, plot_x, ploy_y, plot_z, false, number2d_);
+    static_plots_3d_.emplace_back(plot_x, ploy_y, plot_z, color, PlotMode::LINE);
+    static_plots_2d_.emplace_back(plot_time, plot_x, ploy_y, plot_z, color, PlotMode::LINE);
 
     auto waypoints = traj.getWaypoints();
     auto segments = traj.getSegments();
@@ -109,29 +114,25 @@ public:
     auto waypoints_z = std::vector<double>(waypoints.size());
     auto segments_time = std::vector<double>(waypoints.size(), 0);
 
-    DYNAMIC_LOG(segments.size());
-    DYNAMIC_LOG(waypoints.size());
+    // DYNAMIC_LOG(segments.size());
+    // DYNAMIC_LOG(waypoints.size());
 
     for (int i = 0; i < waypoints.size(); i++)
     {
-      Eigen::VectorXd pos;
-      waypoints[i].getConstraint(0, &pos);
-      waypoints_x[i] = pos(0);
-      waypoints_y[i] = pos(1);
-      waypoints_z[i] = pos(2);
+      dynamic_traj_generator::References ref;
+
       if (i < segments.size())
       {
         segments_time[i + 1] = segments_time[i] + segments[i].getTime();
       }
+      traj.evaluateTrajectory(segments_time[i], ref, true);
+      waypoints_x[i] = ref.position(0);
+      waypoints_y[i] = ref.position(1);
+      waypoints_z[i] = ref.position(2);
     }
-    std::map<std::string, std::string> style2;
-    style2["color"] = color;
-    style2["marker"] = "x";
-    style2["markersize"] = "7";
-    style2["linestyle"] = "none";
 
-    static_plots_3d_.emplace_back(waypoints_x, waypoints_y, waypoints_z, style2, number_);
-    static_plots_2d_.emplace_back(segments_time, waypoints_x, waypoints_y, waypoints_z, true, number2d_);
+    static_plots_3d_.emplace_back(waypoints_x, waypoints_y, waypoints_z, color, PlotMode::WAYPOINT);
+    static_plots_2d_.emplace_back(segments_time, waypoints_x, waypoints_y, waypoints_z, color, PlotMode::WAYPOINT);
 
     mutex_.unlock();
     update_plot_ = true;
@@ -148,21 +149,90 @@ public:
     update_plot_ = true;
   };
 
-  void plot()
+  void clear2dGraph()
+  {
+    plt::figure(number2d_);
+    plt::subplot(3, 1, 1);
+    plt::cla();
+    plt::subplot(3, 1, 2);
+    plt::cla();
+    plt::subplot(3, 1, 3);
+    plt::cla();
+  }
+  void clear3dGraph()
   {
     plt::figure(number_);
-    // plt::axis("equal");
-    plt::grid(true);
-    // plt::ion();
+    plt::cla();
+  }
 
-    static std::map<std::string, std::string> style;
-    if (style.empty())
+  void plot2dGraph(const std::vector<double> &time, const std::vector<double> &x, const std::vector<double> &y,
+                   const std::vector<double> &z, const std::string &color, const PlotMode &plotMode)
+  {
+    std::string options;
+
+    switch (plotMode)
     {
-      style["color"] = "r";
+    case PlotMode::LINE:
+      options = color + "-";
+      break;
+    case PlotMode::UAV:
+      options = color + "o";
+      break;
+    case PlotMode::WAYPOINT:
+      options = color + "x";
+      break;
+    default:
+      throw std::runtime_error("Invalid plot mode");
+    }
+
+    plt::figure(number2d_);
+    plt::subplot(3, 1, 1);
+    plt::plot(time, x, options);
+    plt::subplot(3, 1, 2);
+    plt::plot(time, y, options);
+    plt::subplot(3, 1, 3);
+    plt::plot(time, z, options);
+  };
+
+  void plot3dGraph(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &z,
+                   const std::string &color, const PlotMode &plotMode)
+  {
+    std::map<std::string, std::string> style;
+    style["color"] = color;
+
+    switch (plotMode)
+    {
+    case PlotMode::LINE:
+    {
+    }
+    break;
+    case PlotMode::UAV:
+    {
       style["marker"] = "o";
       style["markersize"] = "5";
       style["linestyle"] = "none";
     }
+
+    break;
+    case PlotMode::WAYPOINT:
+    {
+      style["marker"] = "x";
+      style["markersize"] = "7";
+      style["linestyle"] = "none";
+    }
+    break;
+    default:
+      throw std::runtime_error("Invalid plot mode");
+    }
+
+    plt::figure(number_);
+    plt::plot3(x, y, z, style, number_);
+  };
+
+  void plot()
+  {
+    plt::figure(number_);
+    plt::grid(true);
 
     while (!ended_)
     {
@@ -172,53 +242,26 @@ public:
         continue;
       }
 
-      plt::cla();
+      clear3dGraph();
+      clear2dGraph();
       mutex_.lock();
+
       for (auto &kwargs : static_plots_3d_)
       {
-        plt::plot3(std::get<0>(kwargs), std::get<1>(kwargs), std::get<2>(kwargs), std::get<3>(kwargs), std::get<4>(kwargs));
+        plot3dGraph(std::get<0>(kwargs), std::get<1>(kwargs), std::get<2>(kwargs), std::get<3>(kwargs), std::get<4>(kwargs));
       }
       for (auto &kwargs : static_plots_2d_)
       {
-        if (std::get<4>(kwargs))
-        {
-          plt::figure(std::get<5>(kwargs));
-          plt::subplot(3, 1, 1);
-          plt::plot(std::get<0>(kwargs), std::get<1>(kwargs), "rx");
-          plt::subplot(3, 1, 2);
-          plt::plot(std::get<0>(kwargs), std::get<2>(kwargs), "gx");
-          plt::subplot(3, 1, 3);
-          plt::plot(std::get<0>(kwargs), std::get<3>(kwargs), "bx");
-        }
-        else
-        {
-          plt::figure(std::get<5>(kwargs));
-          plt::subplot(3, 1, 1);
-          plt::cla();
-          plt::plot(std::get<0>(kwargs), std::get<1>(kwargs), "r-");
-          plt::subplot(3, 1, 2);
-          plt::cla();
-          plt::plot(std::get<0>(kwargs), std::get<2>(kwargs), "g-");
-          plt::subplot(3, 1, 3);
-          plt::cla();
-          plt::plot(std::get<0>(kwargs), std::get<3>(kwargs), "b-");
-        }
-      }
+        plot2dGraph(std::get<0>(kwargs), std::get<1>(kwargs), std::get<2>(kwargs), std::get<3>(kwargs), std::get<4>(kwargs),
+                    std::get<5>(kwargs));
+      };
 
-      plt::plot3(uav_pose_x_, uav_pose_y_, uav_pose_z_, style, number_);
-      plt::figure(number2d_);
-      plt::subplot(3, 1, 1);
-      plt::plot(uav_time_, uav_pose_x_, "ro");
-      plt::subplot(3, 1, 2);
-      plt::plot(uav_time_, uav_pose_y_, "go");
-      plt::subplot(3, 1, 3);
-      plt::plot(uav_time_, uav_pose_z_, "bo");
-
-      plt::plot3(uav_pose_x_, uav_pose_y_, uav_pose_z_, style, number_);
+      plot3dGraph(uav_pose_x_, uav_pose_y_, uav_pose_z_, "r", PlotMode::UAV);
+      plot2dGraph(uav_time_, uav_pose_x_, uav_pose_y_, uav_pose_z_, "r", PlotMode::UAV);
+      mutex_.unlock();
 
       plt::show(false);
       update_plot_ = false;
-      mutex_.unlock();
     }
     DYNAMIC_LOG("Close figure to continue");
     plt::show(true);

@@ -42,6 +42,7 @@ public:
   void loadWaypointFromTraj(dynamic_traj_generator::DynamicTrajectory &traj)
   {
     has_waypoint_ = traj.obtainDynamicWaypoints(name_, waypoint_modified_);
+    modified_position_ = waypoint_modified_.getActualPosition();
   };
 
   bool modifyWaypointInTraj(dynamic_traj_generator::DynamicTrajectory &traj, double t)
@@ -64,7 +65,7 @@ public:
   bool triggerModification(double t)
   {
     static double last_trigger_time = 0;
-    if (t < waypoint_modified_.getTime() - 0.5 &&
+    if (t < waypoint_modified_.getTime() - 0.2 &&
         t > waypoint_modified_.getTime() - MAX_POINT_MOVEMENT_TIME && (t - last_trigger_time) > 1.0)
     {
       last_trigger_time = t;
@@ -75,7 +76,8 @@ public:
 
   void updateModifiedPosition(double t)
   {
-    modified_position_ = poseRandomizer(waypoint_modified_.getActualPosition());
+    // modified_position_ = poseRandomizer(modified_position_);
+    modified_position_ = modified_position_ + Eigen::Vector3d(0.2, 0.2, 0.2);
   };
 };
 

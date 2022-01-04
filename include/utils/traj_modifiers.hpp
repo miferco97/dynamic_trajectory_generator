@@ -2,7 +2,8 @@
 #define __TRAJ_MODIFIERS_HPP__
 
 #include <cmath>
-#define SIGMA_FIXED 1
+#define SIGMA_FIXED 1.5
+#define SIGMA_COEFFICIENT 0.75
 #define MAX_REACTION_TIME 3
 
 class TrajModifier
@@ -31,6 +32,8 @@ public:
   {
     increment_ = difference;
   }
+  inline void setSigma(const double &sigma) { sigma_ = sigma; };
+  inline double getSigma() { return sigma_; };
 
   double operator()(const double &t, const int &derivative = 0) const override
   {

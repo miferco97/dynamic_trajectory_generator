@@ -54,7 +54,9 @@ namespace dynamic_traj_generator
     std::string name_ = "";
     int index_ = -1;
 
-    GaussianModifier modifiers_[3];
+    // GaussianModifier modifiers_[3];
+
+    std::vector<std::array<GaussianModifier, 3>> modifiers_;
 
   public:
     DynamicWaypoint()
@@ -86,42 +88,54 @@ namespace dynamic_traj_generator
         : vertex_(other.vertex_), original_position_(other.original_position_), actual_position_(other.actual_position_),
           t_assigned_(other.t_assigned_), name_(other.name_), index_(other.index_)
     {
-      for (int i = 0; i < 3; i++)
-      {
-        modifiers_[i] = other.modifiers_[i];
-      }
+      modifiers_ = other.modifiers_;
     }
 
     typedef std::vector<DynamicWaypoint> Vector;
+    double last_sigma_ = SIGMA_FIXED;
 
     inline void setIndex(const int &index) { index_ = index; };
     inline void setTime(const double &t)
     {
-      for (int i = 0; i < 3; i++)
+      for (auto &modifier : modifiers_)
       {
-        modifiers_[i].setModifierTime(t);
+        for (int i = 0; i < 3; i++)
+        {
+          modifier[i].setModifierTime(t);
+        }
       }
       t_assigned_ = t;
     };
+
     inline void setName(const std::string &name) { name_ = name; };
     inline void displaceIndex(const int &displacement) { index_ += displacement; };
 
-    void
-    setActualPosition(Eigen::Vector3d position)
+    void setActualPosition(Eigen::Vector3d position)
     {
-      actual_position_ = position;
+
+      std::array<GaussianModifier, 3> modifiers;
       for (int i = 0; i < 3; i++)
       {
-        modifiers_[i].setDifference(actual_position_[i] - original_position_[i]);
+        modifiers[i].setDifference(position[i] - actual_position_[i]);
+        modifiers[i].setModifierTime(t_assigned_);
+        modifiers[i].setSigma(last_sigma_ * SIGMA_COEFFICIENT);
       }
+      last_sigma_ *= SIGMA_COEFFICIENT;
+
+      actual_position_ = position;
+      modifiers_.emplace_back(modifiers);
+      DYNAMIC_LOG(modifiers_.size());
     }
     Eigen::Vector3d trajectoryCompensation(double t, int derivative_order = 0)
     {
 
-      Eigen::Vector3d compensation;
-      for (int i = 0; i < 3; i++)
+      Eigen::Vector3d compensation = Eigen::Vector3d::Zero();
+      for (auto &modifier : modifiers_)
       {
-        compensation[i] = modifiers_[i](t, derivative_order);
+        for (int i = 0; i < 3; i++)
+        {
+          compensation[i] += modifier[i](t, derivative_order);
+        }
       }
       return compensation;
     };
@@ -133,15 +147,6 @@ namespace dynamic_traj_generator
     inline Eigen::Vector3d getActualPosition() const { return actual_position_; };
     inline double getTime() const { return t_assigned_; };
   };
-
-  // void setIndexforDynamicWaypoint(DynamicWaypoint::Vector &waypoints)
-  // {
-  //   for (int i = 0; i < waypoints.size(); i++)
-  //   {
-  //     waypoints[i].setIndex(i);
-  //   }
-  // }
-
   class DynamicTrajectory
   {
 

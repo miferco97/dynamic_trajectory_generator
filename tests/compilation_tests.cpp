@@ -29,9 +29,9 @@ int main()
     waypoints[3].setName("waypoint3");
     waypoints[4].setName("waypoint4");
 
-    traj.generateTrajectory(waypoints, 10.0f);
+    traj.generateTrajectory(waypoints, 1.0f);
     TrajEvaluator eval;
-    // eval.addWaypointModifiers("waypoint1");
+    eval.addWaypointModifiers("waypoint1");
     eval.addWaypointModifiers("waypoint2");
     eval.addWaypointModifiers("waypoint3");
 

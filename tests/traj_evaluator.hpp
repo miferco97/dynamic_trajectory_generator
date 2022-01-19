@@ -65,7 +65,7 @@ public:
   bool triggerModification(double t)
   {
     static double last_trigger_time = 0;
-    if (t < waypoint_modified_.getTime() - 0.2 &&
+    if (t < waypoint_modified_.getTime() - 0.1 &&
         t > waypoint_modified_.getTime() - MAX_POINT_MOVEMENT_TIME && (t - last_trigger_time) > 1.0)
     {
       last_trigger_time = t;

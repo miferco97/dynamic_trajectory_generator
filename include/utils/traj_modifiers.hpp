@@ -37,7 +37,9 @@ public:
 
   double operator()(const double &t, const int &derivative = 0) const override
   {
-    if (std::abs(increment_) < 0.02 || std::abs(t - mu_) > MAX_REACTION_TIME)
+    // double max_reaction_time = MAX_REACTION_TIME;
+    double max_reaction_time = 3 * sigma_;
+    if (std::abs(increment_) < 0.02 || std::abs(t - mu_) > max_reaction_time)
     {
       return 0;
     }

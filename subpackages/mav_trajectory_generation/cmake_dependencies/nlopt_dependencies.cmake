@@ -1,5 +1,5 @@
 
-find_package(NLopt QUIET)
+find_package(nlopt QUIET)
 if (${NLopt_FOUND})
   MESSAGE(STATUS "Found NLopt.")
 else (${NLopt_FOUND})

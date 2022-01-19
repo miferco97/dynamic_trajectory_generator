@@ -110,7 +110,7 @@ namespace dynamic_traj_generator
     inline void setName(const std::string &name) { name_ = name; };
     inline void displaceIndex(const int &displacement) { index_ += displacement; };
 
-    void setActualPosition(Eigen::Vector3d position)
+    void setActualPosition(Eigen::Vector3d position, double actual_time = 0.0f)
     {
 
       std::array<GaussianModifier, 3> modifiers;
@@ -118,9 +118,22 @@ namespace dynamic_traj_generator
       {
         modifiers[i].setDifference(position[i] - actual_position_[i]);
         modifiers[i].setModifierTime(t_assigned_);
-        modifiers[i].setSigma(last_sigma_ * SIGMA_COEFFICIENT);
+
+        double sigma;
+
+        if (actual_time > 0.0f)
+        {
+          // 99.7 % of data is between +- 3*sigma
+          sigma = (t_assigned_ - actual_time) / 3.0f;
+        }
+        else
+        {
+          sigma = last_sigma_ * SIGMA_COEFFICIENT;
+          last_sigma_ = sigma;
+        }
+
+        modifiers[i].setSigma(sigma);
       }
-      last_sigma_ *= SIGMA_COEFFICIENT;
 
       actual_position_ = position;
       modifiers_.emplace_back(modifiers);
@@ -197,7 +210,7 @@ namespace dynamic_traj_generator
           DYNAMIC_LOG("Modifying waypoint");
           DYNAMIC_LOG(waypoint.getName());
 
-          waypoint.setActualPosition(position);
+          waypoint.setActualPosition(position, last_t_eval_);
           break;
         }
       }

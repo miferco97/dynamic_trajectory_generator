@@ -71,6 +71,35 @@ namespace dynamic_traj_generator
     dynamic_traj_generator::DynamicWaypoint::Vector dynamic_waypoints_;
     dynamic_traj_generator::DynamicWaypoint::Vector temporal_dynamic_waypoints_;
 
+    /**********************************************************************/
+    /************************ NEW FUNCTIONALITIES *************************/
+    /**********************************************************************/
+
+  public:
+    std::atomic_bool generate_new_traj_ = false;
+    std::atomic_bool in_security_zone_ = false;
+    std::atomic_bool computing_new_trajectory_ = false;
+
+    void setWaypoints(const DynamicWaypoint::Vector &waypoints)
+    {
+      const std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+      dynamic_waypoints_ = waypoints;
+    };
+
+    bool modifyWaypoint(const std::string &name, const Eigen::Vector3d &position);
+    void appendWaypoint(const DynamicWaypoint &waypoint)
+    {
+      const std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+      dynamic_waypoints_.emplace_back(waypoint);
+    };
+
+    void generateTraj(float speed, bool force = false);
+    ThreadSafeTrajectory __generatetrajectory(float max_speed);
+
+    /**********************************************************************/
+    /************************ END NEW FUNCTIONALITIES *********************/
+    /**********************************************************************/
+
   public:
     DynamicTrajectory(){};
 
@@ -80,7 +109,6 @@ namespace dynamic_traj_generator
     inline mav_trajectory_generation::Vertex::Vector getWaypoints() { return traj_.getWaypoints(); }
     inline mav_trajectory_generation::Segment::Vector getSegments() { return traj_.getSegments(); }
     void generateTrajectory(const dynamic_traj_generator::DynamicWaypoint::Vector &waypoints, const float &max_speed);
-    void modifyWaypoint(const std::string &name, const Eigen::Vector3d &position);
     bool obtainDynamicWaypoints(const std::string &waypoint_name, DynamicWaypoint &waypoint);
 
     DynamicWaypoint::Vector getDynamicWaypoints();
@@ -89,8 +117,10 @@ namespace dynamic_traj_generator
   private:
     void selectProperTrajectoryGenerationMethod(const mav_trajectory_generation::Vertex::Vector &waypoints, const float &max_speed)
     {
-      if (from_scratch_) generateTrajectoryFromScratch(waypoints, max_speed);
-      else throw std::runtime_error("Not implemented");
+      if (from_scratch_)
+        generateTrajectoryFromScratch(waypoints, max_speed);
+      else
+        throw std::runtime_error("Not implemented");
     };
 
     void generateTrajectoryFromScratch(const mav_trajectory_generation::Vertex::Vector &vertices,

@@ -15,12 +15,12 @@ namespace plt = matplotlibcpp;
 #define MAX_POINT_MOVEMENT_DISTANCE 2.5
 #define MAX_POINT_MOVEMENT_TIME 5
 
-Eigen::Vector3d poseRandomizer(const Eigen::Vector3d v)
+Eigen::Vector3d poseRandomizer(const Eigen::Vector3d &v, double movement_distance = MAX_POINT_MOVEMENT_DISTANCE)
 {
   Eigen::Vector3d ret = v;
   for (int i = 0; i < 3; i++)
   {
-    ret[i] += MAX_POINT_MOVEMENT_DISTANCE * ((std::rand() % 1000) / 1000.0f) - MAX_POINT_MOVEMENT_DISTANCE / 2.0f;
+    ret[i] += movement_distance * (1 - (std::rand() % 1000) / 500.0f);
   }
   return ret;
 }
@@ -76,7 +76,9 @@ public:
 
   void updateModifiedPosition(double t)
   {
-    // modified_position_ = poseRandomizer(modified_position_);
+    static double multiplier_reduced = 1.0;
+    // modified_position_ = poseRandomizer(modified_position_, MAX_POINT_MOVEMENT_DISTANCE * multiplier_reduced);
+    // multiplier_reduced *= 0.75;
     modified_position_ = modified_position_ + Eigen::Vector3d(0.2, 0.2, 0.2);
   };
 };
@@ -105,7 +107,6 @@ public:
     std::chrono::duration<double, std::milli> elapsed;
     double t = 0.0f;
     bool change_traj = false;
-
     do
     {
       auto end = std::chrono::high_resolution_clock::now();

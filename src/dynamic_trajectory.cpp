@@ -78,7 +78,8 @@ namespace dynamic_traj_generator
       opt.optimize();
       opt.getTrajectory((mav_trajectory_generation::Trajectory *)trajectory.get());
     }
-    if (has_dynamic_waypoints_)
+    // if (has_dynamic_waypoints_)
+    if (true)
     {
       DYNAMIC_LOG("[!INFO!] Trajectory generated with dynamic waypoints");
       mav_trajectory_generation::Segment::Vector segments;
@@ -108,15 +109,31 @@ namespace dynamic_traj_generator
     return getRefs(traj_, t_eval, refs, only_positions);
   }
 
+  void DynamicTrajectory::swapDynamicWaypoints(std::vector<dynamic_traj_generator::DynamicWaypoint> &temporal_waypoints)
+  {
+    // Think if this is necessary, what happens if
+    //   for (auto &temporal_waypoint : temporal_waypoints)
+    //   {
+    //     auto iter = std::find_if(dynamic_waypoints_.begin(), dynamic_waypoints_.end(),
+    //                              [&temporal_waypoint](const dynamic_traj_generator::DynamicWaypoint &waypoint)
+    //                              {
+    //                                return waypoint.getName() == temporal_waypoint.getName();
+    //                              });
+    //     if (iter != temporal_dynamic_waypoints_.end())
+    //     {
+    //       temporal_waypoint.setActualPosition(iter->getActualPosition(), );
+    //     }
+    //   }
+
+    dynamic_waypoints_ = std::move(temporal_dynamic_waypoints_);
+  }
+
   void DynamicTrajectory::swapTrajectory()
   {
     const std::lock_guard<std::mutex> lock(future_mutex_);
     traj_ = std::move(future_traj_.get());
-    if (has_dynamic_waypoints_)
-    {
-      const std::lock_guard<std::mutex> lock2(dynamic_waypoints_mutex_);
-      dynamic_waypoints_ = std::move(temporal_dynamic_waypoints_);
-    }
+    const std::lock_guard<std::mutex> lock2(dynamic_waypoints_mutex_);
+    swapDynamicWaypoints(temporal_dynamic_waypoints_);
     last_t_eval_ = 0.0f;
     DYNAMIC_LOG("Trajectory swapped");
   };
@@ -170,30 +187,74 @@ namespace dynamic_traj_generator
     return traj_.getMinTime();
   }
 
-  void DynamicTrajectory::generateTrajectory(const mav_trajectory_generation::Vertex::Vector &waypoints, const float &max_speed)
+  mav_trajectory_generation::Vertex::Vector extractVerticesFromWaypoints(const dynamic_traj_generator::DynamicWaypoint::Vector &waypoints)
   {
-    has_dynamic_waypoints_ = false;
-    selectProperTrajectoryGenerationMethod(waypoints, max_speed);
+    mav_trajectory_generation::Vertex::Vector vertices;
+    vertices.reserve(waypoints.size());
+    for (auto &waypoint : waypoints)
+    {
+      vertices.emplace_back(waypoint.getVertex());
+    }
+    return vertices;
+  }
+
+  bool DynamicTrajectory::obtainDynamicWaypoints(const std::string &waypoint_name, DynamicWaypoint &waypoint)
+  {
+    std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+    for (auto &waypoint_ : dynamic_waypoints_)
+    {
+      if (waypoint_.getName() == waypoint_name)
+      {
+        waypoint = waypoint_;
+        return true;
+      }
+    }
+    return false;
   };
 
+  DynamicWaypoint::Vector DynamicTrajectory::getDynamicWaypoints()
+  {
+    std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+    return dynamic_waypoints_;
+  };
+
+  void DynamicTrajectory::modifyWaypoint(const std::string &name, const Eigen::Vector3d &position)
+  {
+    std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+    for (auto &waypoint : dynamic_waypoints_)
+    {
+      if (waypoint.getName() == name)
+      {
+        DYNAMIC_LOG("Modifying waypoint");
+        DYNAMIC_LOG(waypoint.getName());
+        // FIXME: FIX BUG RELATED WITH NEAR WAYPOINTS INTERFERING BETWEEN THEM
+        //  auto position_correction = traj_.evaluate(waypoint.getTime(), 0);
+
+        waypoint.setActualPosition(position, last_t_eval_);
+        break;
+      }
+    }
+  };
   void DynamicTrajectory::generateTrajectory(const dynamic_traj_generator::DynamicWaypoint::Vector &waypoints, const float &max_speed)
   {
-    has_dynamic_waypoints_ = true;
-    mav_trajectory_generation::Vertex::Vector vertices(waypoints.size(), dimension_);
-    temporal_dynamic_waypoints_.clear();
-    temporal_dynamic_waypoints_.reserve(waypoints.size());
-    int waypoint_index = 0;
-    for (auto waypoint : waypoints)
-    {
-      if (waypoint.getName() != "")
-      {
-        waypoint.setIndex(waypoint_index);
-        temporal_dynamic_waypoints_.emplace_back(waypoint);
-      }
-      vertices[waypoint_index] = waypoint.getVertex();
-      waypoint_index++;
-    }
-    selectProperTrajectoryGenerationMethod(vertices, max_speed);
+    temporal_dynamic_waypoints_ = waypoints;
+    auto vertices = extractVerticesFromWaypoints(temporal_dynamic_waypoints_);
+
+    // mav_trajectory_generation::Vertex::Vector vertices(waypoints.size(), dimension_);
+    // temporal_dynamic_waypoints_.clear();
+    // temporal_dynamic_waypoints_.reserve(waypoints.size());
+    // int waypoint_index = 0;
+    // for (auto waypoint : waypoints)
+    // {
+    //   if (waypoint.getName() != "")
+    //   {
+    //     waypoint.setIndex(waypoint_index);
+    //     temporal_dynamic_waypoints_.emplace_back(waypoint);
+    //   }
+    //   vertices[waypoint_index] = waypoint.getVertex();
+    //   waypoint_index++;
+    // }
+    // selectProperTrajectoryGenerationMethod(vertices, max_speed);
   };
 
 } // namespace dynamic_traj_generator

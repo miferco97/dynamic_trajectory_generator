@@ -15,12 +15,12 @@ add_subdirectory(subpackages/matplotlib_cpp)
 include_directories(subpackages/matplotlib_cpp)
 # include(cmake_extern_dependencies/matplotlib_cpp_dependencies.cmake)
 
-
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 set(SOURCE_CPP_FILES 
   src/dynamic_trajectory.cpp
+  src/dynamic_waypoint.cpp
   # src/eth_traj_wrapper.cpp
   # src/trajectory_generator.cpp
   # src/trajectory_publisher.cpp
@@ -38,7 +38,6 @@ include_directories(
 
 #check if testing
 include(tests/profiling_cmake.cmake)
-
 
 add_executable(compilation_tests tests/compilation_tests.cpp ${SOURCE_CPP_FILES})
 target_link_libraries(compilation_tests mav_trajectory_generation python3.8)

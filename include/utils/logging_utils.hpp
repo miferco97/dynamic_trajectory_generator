@@ -32,6 +32,24 @@ void PRINT_STRINGS(const char *name, const char *s)
 
 #define DYNAMIC_LOG(x) PRINT_STRINGS(#x, x)
 
+#else // RCLCPP__LOGGER_HPP_
+
+template <typename T>
+void PRINT_STRINGS(const char *name, T t)
+{
+  RCLCPP_INFO(rclcpp::get_logger("dynamic_traj_generator"), "[%s]: %s", name, t);
+}
+void PRINT_STRINGS(const char *name, std::string s)
+{
+  RCLCPP_INFO(rclcpp::get_logger("dynamic_traj_generator"), "%s", s.c_str());
+}
+void PRINT_STRINGS(const char *name, const char *s)
+{
+  RCLCPP_INFO(rclcpp::get_logger("dynamic_traj_generator"), "%s", s);
+}
+
+#define DYNAMIC_LOG(x) PRINT_STRINGS(#x, x)
+
 #endif // RCLCPP__LOGGER_HPP_
 
 #endif // __SCREEN_OUTPUT__

@@ -12,6 +12,10 @@ TODO:
   - [ ] Testing with Gtest
   - [ ] Relate Trajectory Modifiers with uav speed and position **!! IMPORTANTE**
 
+Bugs known:
+
+  - [ ] When dynamic waypoints are too close the previous gaussian modifies the actual waypoint trajectory
+
 Dependencies:
 - YamlCPP (```$ sudo apt install libyaml-cpp* ```)
 - 

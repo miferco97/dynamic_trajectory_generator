@@ -122,40 +122,48 @@ public:
     auto waypoints_z = std::vector<double>(waypoints.size());
 
     auto waypoints_dyn = traj.getDynamicWaypoints();
-    auto waypoints_x_test = std::vector<double>(waypoints_dyn.size());
-    auto waypoints_y_test = std::vector<double>(waypoints_dyn.size());
-    auto waypoints_z_test = std::vector<double>(waypoints_dyn.size());
+    std::vector<double> waypoints_x_dyn;
+    std::vector<double> waypoints_y_dyn;
+    std::vector<double> waypoints_z_dyn;
+    std::vector<double> time_dyn;
 
     auto segments_time = std::vector<double>(waypoints.size(), 0);
+
+    if (waypoints_dyn.size() != waypoints.size())
+    {
+      throw std::runtime_error("dynamic_waypoints_with_different_sizes");
+    }
 
     // DYNAMIC_LOG(segments.size());
     // DYNAMIC_LOG(waypoints.size());
     for (int i = 0; i < waypoints.size(); i++)
     {
-      Eigen::Vector3d waypoint_vec;
 
       dynamic_traj_generator::References ref;
-      waypoint_vec = waypoints_dyn[i].getActualPosition();
-
       if (i < segments.size())
       {
         segments_time[i + 1] = segments_time[i] + segments[i].getTime();
       }
       traj.evaluateTrajectory(segments_time[i], ref, true);
+      if (waypoints_dyn[i].getName() != "")
+      {
+        Eigen::Vector3d waypoint_vec;
+        waypoint_vec = waypoints_dyn[i].getActualPosition();
+        waypoints_x_dyn.emplace_back(waypoint_vec(0));
+        waypoints_y_dyn.emplace_back(waypoint_vec(1));
+        waypoints_z_dyn.emplace_back(waypoint_vec(2));
+        time_dyn.emplace_back(segments_time[i]);
+      }
+
       waypoints_x[i] = ref.position(0);
       waypoints_y[i] = ref.position(1);
       waypoints_z[i] = ref.position(2);
-
-      waypoints_x_test[i] = waypoint_vec(0);
-      waypoints_y_test[i] = waypoint_vec(1);
-      waypoints_z_test[i] = waypoint_vec(2);
     }
 
     static_plots_3d_.emplace_back(waypoints_x, waypoints_y, waypoints_z, color, PlotMode::WAYPOINT);
-    // static_plots_3d_.emplace_back(waypoints_x_test, waypoints_y_test, waypoints_z_test, color, PlotMode::UAV);
+    // static_plots_3d_.emplace_back(waypoints_x_dyn, waypoints_y_dyn, waypoints_z_dyn, color, PlotMode::UAV);
     static_plots_2d_.emplace_back(segments_time, waypoints_x, waypoints_y, waypoints_z, color, PlotMode::WAYPOINT);
-    static_plots_2d_.emplace_back(segments_time, waypoints_x_test, waypoints_y_test, waypoints_z_test, color,
-                                  PlotMode::UAV);
+    static_plots_2d_.emplace_back(time_dyn, waypoints_x_dyn, waypoints_y_dyn, waypoints_z_dyn, color, PlotMode::UAV);
 
     mutex_.unlock();
     update_plot_ = true;

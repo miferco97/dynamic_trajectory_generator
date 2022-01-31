@@ -29,11 +29,13 @@ int main()
     waypoints[3].setName("waypoint3");
     waypoints[4].setName("waypoint4");
 
-    traj.generateTrajectory(waypoints, 8.0f);
+    traj.setWaypoints(waypoints);
+    traj.generateTrajectory(8.0f);
     TrajEvaluator eval;
     eval.addWaypointModifiers("waypoint1");
     eval.addWaypointModifiers("waypoint2");
     eval.addWaypointModifiers("waypoint3");
+    eval.addWaypointModifiers("waypoint4");
 
     eval.runEvaluation(traj);
     // traj.generate2Dplot();

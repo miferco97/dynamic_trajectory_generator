@@ -148,7 +148,7 @@ public:
       if (waypoints_dyn[i].getName() != "")
       {
         Eigen::Vector3d waypoint_vec;
-        waypoint_vec = waypoints_dyn[i].getActualPosition();
+        waypoint_vec = waypoints_dyn[i].getCurrentPosition();
         waypoints_x_dyn.emplace_back(waypoint_vec(0));
         waypoints_y_dyn.emplace_back(waypoint_vec(1));
         waypoints_z_dyn.emplace_back(waypoint_vec(2));

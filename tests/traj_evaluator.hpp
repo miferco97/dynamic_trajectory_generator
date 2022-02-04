@@ -39,10 +39,21 @@ public:
   DynamicWaypointModifier(const std::string &name)
       : name_(name){};
 
+  bool findWaypoint(const std::string &name, dynamic_traj_generator::DynamicWaypoint &waypoint, const dynamic_traj_generator::DynamicTrajectory &traj)
+  {
+    auto waypoints = traj.getDynamicWaypoints();
+    for (auto &elem : waypoints)
+    {
+      if (name == elem.getName())
+        waypoint = elem;
+      return true;
+    }
+    return false;
+  }
   void loadWaypointFromTraj(dynamic_traj_generator::DynamicTrajectory &traj)
   {
-    has_waypoint_ = traj.obtainDynamicWaypoints(name_, waypoint_modified_);
-    modified_position_ = waypoint_modified_.getActualPosition();
+    has_waypoint_ = findWaypoint(name_, waypoint_modified_, traj);
+    modified_position_ = waypoint_modified_.getCurrentPosition();
   };
 
   bool modifyWaypointInTraj(dynamic_traj_generator::DynamicTrajectory &traj, double t)

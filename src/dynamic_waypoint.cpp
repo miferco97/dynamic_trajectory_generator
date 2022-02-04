@@ -19,27 +19,24 @@ namespace dynamic_traj_generator
     original_position_[0] = pos[0];
     original_position_[1] = pos[1];
     original_position_[2] = pos[2];
-
-    // DYNAMIC_LOG(original_position_.transpose());
-    // vertex_.addConstraint(mav_trajectory_generation::derivative_order::POSITION, original_position_);
-    actual_position_ = original_position_;
+    current_position_ = original_position_;
   };
 
   // copy constructor
   DynamicWaypoint::DynamicWaypoint(const DynamicWaypoint &other)
-      : vertex_(other.vertex_), original_position_(other.original_position_), actual_position_(other.actual_position_),
+      : vertex_(other.vertex_), original_position_(other.original_position_), current_position_(other.current_position_),
         t_assigned_(other.t_assigned_), name_(other.name_), index_(other.index_)
   {
     modifiers_ = other.modifiers_;
   }
 
-  void DynamicWaypoint::setActualPosition(Eigen::Vector3d position, double actual_time)
+  void DynamicWaypoint::setCurrentPosition(Eigen::Vector3d position, double actual_time)
   {
 
     std::array<GaussianModifier, 3> modifiers;
     for (int i = 0; i < 3; i++)
     {
-      modifiers[i].setDifference(position[i] - actual_position_[i]);
+      modifiers[i].setDifference(position[i] - current_position_[i]);
       modifiers[i].setModifierTime(t_assigned_);
 
       double sigma;
@@ -57,7 +54,7 @@ namespace dynamic_traj_generator
       modifiers[i].setSigma(sigma);
     }
 
-    actual_position_ = position;
+    current_position_ = position;
     modifiers_.emplace_back(modifiers);
     DYNAMIC_LOG(modifiers_.size());
   }

@@ -56,7 +56,6 @@ namespace dynamic_traj_generator
 
     current_position_ = position;
     modifiers_.emplace_back(modifiers);
-    DYNAMIC_LOG(modifiers_.size());
   }
 
   Eigen::Vector3d DynamicWaypoint::trajectoryCompensation(double t, int derivative_order)

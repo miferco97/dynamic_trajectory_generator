@@ -3,7 +3,8 @@
 namespace dynamic_traj_generator
 {
 
-  mav_trajectory_generation::Vertex::Vector extractVerticesFromWaypoints(const dynamic_traj_generator::DynamicWaypoint::Deque &waypoints)
+  mav_trajectory_generation::Vertex::Vector extractVerticesFromWaypoints(
+      const dynamic_traj_generator::DynamicWaypoint::Deque &waypoints)
   {
     mav_trajectory_generation::Vertex::Vector vertices;
     vertices.reserve(waypoints.size());
@@ -18,12 +19,18 @@ namespace dynamic_traj_generator
   {
     if (traj_ == nullptr)
     {
+      while (generate_new_traj_)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
       future_mutex_.lock();
       if (future_traj_.valid())
       {
         future_traj_.wait();
         future_mutex_.unlock();
         swapTrajectory();
+        swapDynamicWaypoints();
+        computing_new_trajectory_ = false;
       }
       else
       {
@@ -35,7 +42,9 @@ namespace dynamic_traj_generator
     return true;
   }
 
-  double getCummulativeTime(const mav_trajectory_generation::Segment::Vector &segments, const int &waypoint_index)
+  double getCummulativeTime(
+      const mav_trajectory_generation::Segment::Vector &segments,
+      const int &waypoint_index)
   {
     if (waypoint_index < 0 || waypoint_index > segments.size())
     {
@@ -49,8 +58,8 @@ namespace dynamic_traj_generator
     return value;
   }
 
-  ThreadSafeTrajectory DynamicTrajectory::computeTrajectory(const DynamicWaypoint::Deque &waypoints,
-                                                            const bool &lineal_optimization)
+  ThreadSafeTrajectory DynamicTrajectory::computeTrajectory(
+      const DynamicWaypoint::Deque &waypoints, const bool &lineal_optimization)
   {
     parameters_mutex.lock();
     float max_speed = parameters_.speed;
@@ -62,15 +71,18 @@ namespace dynamic_traj_generator
       throw std::runtime_error("Not enough waypoints");
     }
     const int N = 10;
-    std::shared_ptr<mav_trajectory_generation::Trajectory> trajectory = std::make_shared<mav_trajectory_generation::Trajectory>();
-    auto segment_times = mav_trajectory_generation::estimateSegmentTimes(vertices, max_speed, this->a_max_);
+    std::shared_ptr<mav_trajectory_generation::Trajectory> trajectory =
+        std::make_shared<mav_trajectory_generation::Trajectory>();
+    auto segment_times = mav_trajectory_generation::estimateSegmentTimes(
+        vertices, max_speed, this->a_max_);
     // Optimizer
     if (lineal_optimization)
     {
       mav_trajectory_generation::PolynomialOptimization<N> opt(dimension_);
       opt.setupFromVertices(vertices, segment_times, derivative_to_optimize_);
       opt.solveLinear();
-      opt.getTrajectory((mav_trajectory_generation::Trajectory *)trajectory.get());
+      opt.getTrajectory(
+          (mav_trajectory_generation::Trajectory *)trajectory.get());
     }
     else
     {
@@ -82,30 +94,34 @@ namespace dynamic_traj_generator
       parameters.initial_stepsize_rel = 0.1;
       // parameters.inequality_constraint_tolerance = 0.1;
       parameters.inequality_constraint_tolerance = 0.2;
-      mav_trajectory_generation::PolynomialOptimizationNonLinear<N> opt(dimension_, parameters);
+      mav_trajectory_generation::PolynomialOptimizationNonLinear<N> opt(
+          dimension_, parameters);
       opt.setupFromVertices(vertices, segment_times, derivative_to_optimize_);
-      opt.addMaximumMagnitudeConstraint(mav_trajectory_generation::derivative_order::VELOCITY, max_speed);
-      opt.addMaximumMagnitudeConstraint(mav_trajectory_generation::derivative_order::ACCELERATION, a_max_);
+      opt.addMaximumMagnitudeConstraint(
+          mav_trajectory_generation::derivative_order::VELOCITY, max_speed);
+      opt.addMaximumMagnitudeConstraint(
+          mav_trajectory_generation::derivative_order::ACCELERATION, a_max_);
       opt.optimize();
-      opt.getTrajectory((mav_trajectory_generation::Trajectory *)trajectory.get());
+      opt.getTrajectory(
+          (mav_trajectory_generation::Trajectory *)trajectory.get());
     }
     DYNAMIC_LOG("[!INFO!] Trajectory generated with dynamic waypoints");
     mav_trajectory_generation::Segment::Vector segments;
     trajectory->getSegments(&segments);
-    dynamic_waypoints_mutex_.lock();
-    for (auto &waypoint : dynamic_waypoints_)
+    for (auto &waypoint : next_trajectory_waypoint_)
     {
-      DYNAMIC_LOG(waypoint.getName());
+      // DYNAMIC_LOG(waypoint.getName());
       waypoint.setTime(getCummulativeTime(segments, waypoint.getIndex()));
     }
-    dynamic_waypoints_mutex_.unlock();
     computing_new_trajectory_ = false;
     return ThreadSafeTrajectory(trajectory);
   };
 
-  bool DynamicTrajectory::evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs, bool only_positions)
+  bool DynamicTrajectory::evaluateTrajectory(
+      const float &t, dynamic_traj_generator::References &refs,
+      bool only_positions)
   {
-    const std::lock_guard<std::mutex> lock(traj_mutex_);
+    // const std::lock_guard<std::mutex> lock(traj_mutex_);
     parameters_mutex.lock();
     float t_eval = t + parameters_.t_offset;
     parameters_.last_t_eval = t_eval;
@@ -113,24 +129,33 @@ namespace dynamic_traj_generator
     return getRefs(traj_, t_eval, refs, only_positions);
   }
 
-  void DynamicTrajectory::generateTrajectory(const DynamicWaypoint::DynamicWaypoint::Deque &waypoints, bool force)
+  void DynamicTrajectory::generateTrajectory(
+      const DynamicWaypoint::DynamicWaypoint::Deque &waypoints, bool force)
   {
     std::lock_guard<std::mutex> lock(future_mutex_);
-    future_traj_ = std::async(std::launch::async, &DynamicTrajectory::computeTrajectory, this, waypoints, force);
+    future_traj_ =
+        std::async(std::launch::async, &DynamicTrajectory::computeTrajectory,
+                   this, waypoints, force);
   };
 
   void DynamicTrajectory::swapTrajectory()
   {
     const std::lock_guard<std::mutex> lock(future_mutex_);
     traj_ = std::move(future_traj_.get());
-    const std::lock_guard<std::mutex> lock2(dynamic_waypoints_mutex_);
     const std::lock_guard<std::mutex> lock3(parameters_mutex);
     parameters_.last_t_eval = 0.0f;
     DYNAMIC_LOG("Trajectory swapped");
   };
 
-  bool DynamicTrajectory::getRefs(const ThreadSafeTrajectory &traj,
-                                  double t_eval, dynamic_traj_generator::References &refs,
+  void DynamicTrajectory::swapDynamicWaypoints()
+  {
+    const std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+    dynamic_waypoints_ = next_trajectory_waypoint_;
+    DYNAMIC_LOG("Waypoints swapped");
+  }
+
+  bool DynamicTrajectory::getRefs(const ThreadSafeTrajectory &traj, double t_eval,
+                                  dynamic_traj_generator::References &refs,
                                   const bool only_position)
   {
     if (t_eval < traj.getMinTime())
@@ -174,8 +199,9 @@ namespace dynamic_traj_generator
     return traj_.getMinTime();
   }
 
-  DynamicWaypoint::Deque DynamicTrajectory::getDynamicWaypoints() const
+  DynamicWaypoint::Deque DynamicTrajectory::getDynamicWaypoints()
   {
+    checkTrajectoryGenerated();
     std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
     return dynamic_waypoints_;
   };
@@ -186,13 +212,8 @@ namespace dynamic_traj_generator
     return parameters_.speed;
   };
 
-  inline void DynamicTrajectory::setSpeed(double speed)
-  {
-    const std::lock_guard<std::mutex> lock(parameters_mutex);
-    parameters_.speed = speed;
-  };
-
-  bool DynamicTrajectory::applyWaypointModification(const std::string &name, const Eigen::Vector3d &position)
+  bool DynamicTrajectory::applyWaypointModification(
+      const std::string &name, const Eigen::Vector3d &position)
   {
     bool modified = false;
     std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
@@ -200,8 +221,6 @@ namespace dynamic_traj_generator
     {
       if (waypoint.getName() == name)
       {
-        DYNAMIC_LOG("Modifying waypoint");
-        DYNAMIC_LOG(waypoint.getName());
 
         const std::lock_guard<std::mutex> lock3(parameters_mutex);
         waypoint.setCurrentPosition(position, parameters_.last_t_eval);
@@ -211,21 +230,29 @@ namespace dynamic_traj_generator
     return modified;
   };
 
-  inline double computeSecurityTime(int n, double TimeConstant) { return TimeConstant * AsyntoticComplexity(n); }
+  inline double computeSecurityTime(int n, double TimeConstant)
+  {
+    return TimeConstant * AsyntoticComplexity(n);
+  }
 
-  DynamicWaypoint::Deque DynamicTrajectory::stitchActualTrajectoryWithNewWaypoints(double last_t_evaluated,
-                                                                                   const DynamicWaypoint::Deque &waypoints,
-                                                                                   double TimeConstantAlgorithm)
+  DynamicWaypoint::Deque
+  DynamicTrajectory::stitchActualTrajectoryWithNewWaypoints(
+      double last_t_evaluated, const DynamicWaypoint::Deque &waypoints,
+      double TimeConstantAlgorithm)
   {
     // First step is to calculate new waypoints.
     int n_waypoints = N_WAYPOINTS_TO_APPEND + waypoints.size();
     DynamicWaypoint::Deque new_waypoints;
     // Append the previous points to generate a smooth stitching
-    for (int i_waypoints_appended = 0; i_waypoints_appended < N_WAYPOINTS_TO_APPEND; i_waypoints_appended++)
+    for (int i_waypoints_appended = 0;
+         i_waypoints_appended < N_WAYPOINTS_TO_APPEND; i_waypoints_appended++)
     {
       dynamic_traj_generator::References references;
       mav_trajectory_generation::Vertex vertex(3);
-      double eval_t = last_t_evaluated + SECURITY_COEF * (i_waypoints_appended / N_WAYPOINTS_TO_APPEND) * computeSecurityTime(n_waypoints, TimeConstantAlgorithm);
+      double eval_t = last_t_evaluated +
+                      SECURITY_COEF *
+                          (i_waypoints_appended / N_WAYPOINTS_TO_APPEND) *
+                          computeSecurityTime(n_waypoints, TimeConstantAlgorithm);
       if (i_waypoints_appended == 0)
       {
         getRefs(traj_, eval_t, references);
@@ -235,7 +262,9 @@ namespace dynamic_traj_generator
       else
       {
         getRefs(traj_, eval_t, references, true);
-        vertex.addConstraint(mav_trajectory_generation::derivative_order::POSITION, references.position);
+        vertex.addConstraint(
+            mav_trajectory_generation::derivative_order::POSITION,
+            references.position);
       }
       new_waypoints.emplace_back(vertex);
     }
@@ -247,7 +276,8 @@ namespace dynamic_traj_generator
     return new_waypoints;
   };
 
-  static void updateDynamicWaypointsPosition(DynamicWaypoint::Deque &dynamic_waypoints)
+  static void updateDynamicWaypointsPosition(
+      DynamicWaypoint::Deque &dynamic_waypoints)
   {
     for (auto &waypoint : dynamic_waypoints)
     {
@@ -261,7 +291,8 @@ namespace dynamic_traj_generator
     dynamic_waypoints_.pop_front();
   }
 
-  // void DynamicTrajectory::calculateIndexDynamicWaypoints(DynamicWaypoint::Deque &dynamic_vector)
+  // void DynamicTrajectory::calculateIndexDynamicWaypoints(DynamicWaypoint::Deque
+  // &dynamic_vector)
   // {
   //   for (int i = 0; i < dynamic_waypoints_.size(); i++)
   //   {
@@ -272,6 +303,7 @@ namespace dynamic_traj_generator
   void DynamicTrajectory::setWaypoints(const DynamicWaypoint::Vector &waypoints)
   {
     const std::lock_guard<std::mutex> lock(todo_mutex);
+    DYNAMIC_LOG("Setting waypoints");
     waypoints_to_be_set_.clear();
     waypoints_to_be_modified_.clear();
     waypoints_to_be_added_.clear();
@@ -280,22 +312,33 @@ namespace dynamic_traj_generator
     {
       waypoints_to_be_set_.emplace_back(waypoint);
     }
+    generate_new_traj_ = true;
   };
 
   void DynamicTrajectory::appendWaypoint(const DynamicWaypoint &waypoint)
   {
     const std::lock_guard<std::mutex> lock(todo_mutex);
     waypoints_to_be_added_.emplace_back(waypoint);
+    generate_new_traj_ = true;
   }
 
-  void DynamicTrajectory::modifyWaypoint(const std::string &name, const Eigen::Vector3d &position)
+  void DynamicTrajectory::modifyWaypoint(const std::string &name,
+                                         const Eigen::Vector3d &position)
   {
     const std::lock_guard<std::mutex> lock(todo_mutex);
     // check if the waypoint is already in the waypoints to be modified list
-    auto iter = std::find_if(waypoints_to_be_modified_.begin(),
-                             waypoints_to_be_modified_.end(),
-                             [&name](const std::pair<std::string, Eigen::Vector3d> &waypoint)
-                             { return waypoint.first == name; });
+    // if (computing_new_trajectory_ || checkIfTrajectoryCanBeGenerated())
+    if (true)
+    {
+      applyWaypointModification(name, position);
+      return;
+    }
+    auto iter = std::find_if(
+        waypoints_to_be_modified_.begin(), waypoints_to_be_modified_.end(),
+        [&name](const std::pair<std::string, Eigen::Vector3d> &waypoint)
+        {
+          return waypoint.first == name;
+        });
     if (iter == waypoints_to_be_modified_.end())
     {
       waypoints_to_be_modified_.emplace_back(name, position);
@@ -307,7 +350,9 @@ namespace dynamic_traj_generator
     }
   };
 
-  void resetWaypointThroughDeque(DynamicWaypoint::Deque &waypoints, const std::string &name, const Eigen::Vector3d &position)
+  void resetWaypointThroughDeque(DynamicWaypoint::Deque &waypoints,
+                                 const std::string &name,
+                                 const Eigen::Vector3d &position)
   {
     if (name == "")
     {
@@ -322,24 +367,39 @@ namespace dynamic_traj_generator
     }
   };
 
-  bool stitchTrajectory() { return true; }
+  bool stitchTrajectory() { return false; }
   void DynamicTrajectory::TodoThreadLoop()
   {
-    if (generate_new_traj_)
+    while (!stop_process_)
     {
-      next_trajectory_waypoint_ = generateWaypointsForTheNextTrajectory();
-      if (stitchTrajectory())
+      if (generate_new_traj_ && checkIfTrajectoryCanBeGenerated())
       {
-        DynamicWaypoint::Deque new_waypoints = stitchActualTrajectoryWithNewWaypoints(parameters_.last_t_eval,
-                                                                                      next_trajectory_waypoint_,
-                                                                                      computeSecurityTime(next_trajectory_waypoint_.size(), TIME_CONSTANT));
-        next_trajectory_waypoint_ = new_waypoints;
+
+        next_trajectory_waypoint_ = generateWaypointsForTheNextTrajectory();
+        DYNAMIC_LOG("generate new trajectory");
+        if (stitchTrajectory())
+        {
+          DynamicWaypoint::Deque new_waypoints =
+              stitchActualTrajectoryWithNewWaypoints(
+                  parameters_.last_t_eval, next_trajectory_waypoint_,
+                  computeSecurityTime(next_trajectory_waypoint_.size(),
+                                      TIME_CONSTANT));
+          next_trajectory_waypoint_ = new_waypoints;
+        }
+        calculateIndexDynamicWaypoints(next_trajectory_waypoint_);
+        generateTrajectory(next_trajectory_waypoint_, parameters_.speed);
+        generate_new_traj_ = false;
       }
-      generateTrajectory(next_trajectory_waypoint_, parameters_.speed);
+      else
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
     }
+    return;
   }
 
-  DynamicWaypoint::Deque DynamicTrajectory::generateWaypointsForTheNextTrajectory()
+  DynamicWaypoint::Deque
+  DynamicTrajectory::generateWaypointsForTheNextTrajectory()
   {
     const std::lock_guard<std::mutex> lock(todo_mutex);
     DynamicWaypoint::Deque next_trajectory_waypoints;
@@ -351,7 +411,7 @@ namespace dynamic_traj_generator
     else
     {
       for (auto &waypoint : waypoints_to_be_set_)
-        next_trajectory_waypoint_.emplace_back(waypoint);
+        next_trajectory_waypoints.emplace_back(waypoint);
     }
     for (auto &waypoint : waypoints_to_be_added_)
     {
@@ -359,7 +419,8 @@ namespace dynamic_traj_generator
     }
     for (auto &waypoint : waypoints_to_be_modified_)
     {
-      resetWaypointThroughDeque(next_trajectory_waypoints, waypoint.first, waypoint.second);
+      resetWaypointThroughDeque(next_trajectory_waypoints, waypoint.first,
+                                waypoint.second);
     }
     waypoints_to_be_set_.clear();
     waypoints_to_be_added_.clear();

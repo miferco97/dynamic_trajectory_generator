@@ -27,7 +27,7 @@
 #define TIME_CONSTANT 1.0
 
 constexpr float AsyntoticComplexity(int n) {
-  float value = n * n; // TODO: CALCULATE THIS CORRECTLY
+  float value = n * n;  // TODO: CALCULATE THIS CORRECTLY
   return value;
 }
 
@@ -40,20 +40,20 @@ struct References {
 
   Eigen::Vector3d &operator[](int index) {
     switch (index) {
-    case 0:
-      return position;
-    case 1:
-      return velocity;
-    case 2:
-      return acceleration;
-    default:
-      throw std::runtime_error("Invalid index");
+      case 0:
+        return position;
+      case 1:
+        return velocity;
+      case 2:
+        return acceleration;
+      default:
+        throw std::runtime_error("Invalid index");
     }
   }
 };
 
 class DynamicTrajectory {
-private:
+  private:
   struct NumericParameters {
     double last_t_eval = 0.0f;
     double t_offset = 0.0f;
@@ -81,9 +81,9 @@ private:
   mutable std::mutex todo_mutex;
 
   dynamic_traj_generator::DynamicWaypoint::Deque
-      dynamic_waypoints_; // buffer to store waypoints not updated
+      dynamic_waypoints_;  // buffer to store waypoints not updated
   dynamic_traj_generator::DynamicWaypoint::Deque
-      next_trajectory_waypoint_; // buffer to store waypoints not updated
+      next_trajectory_waypoint_;  // buffer to store waypoints not updated
 
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_be_added_;
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_be_set_;
@@ -103,7 +103,8 @@ private:
     return !in_security_zone_ && !computing_new_trajectory_;
   }
 
-public:
+
+  public:
   DynamicWaypoint::Deque generateWaypointsForTheNextTrajectory();
   // Default constructor
   DynamicTrajectory() {
@@ -139,11 +140,10 @@ public:
   bool evaluateTrajectory(const float &t,
                           dynamic_traj_generator::References &refs,
                           bool only_positions = false);
-  void
-  generateTrajectory(const DynamicWaypoint::DynamicWaypoint::Deque &waypoints,
-                     bool force);
+  void generateTrajectory(
+      const DynamicWaypoint::DynamicWaypoint::Deque &waypoints, bool force);
 
-private:
+  private:
   bool applyWaypointModification(const std::string &name,
                                  const Eigen::Vector3d &position);
   void calculateIndexDynamicWaypoints(DynamicWaypoint::Deque &dynamic_vector) {
@@ -153,9 +153,9 @@ private:
   };
   inline void removeWaypoint();
   bool checkTrajectoryGenerated();
-  ThreadSafeTrajectory
-  computeTrajectory(const DynamicWaypoint::Deque &waypoints,
-                    const bool &lineal_optimization = false);
+  ThreadSafeTrajectory computeTrajectory(
+      const DynamicWaypoint::Deque &waypoints,
+      const bool &lineal_optimization = false);
   void swapTrajectory();
   void swapDynamicWaypoints();
   bool getRefs(const ThreadSafeTrajectory &traj, double t_eval,
@@ -179,6 +179,6 @@ private:
       double TimeConstantAlgorithm);
 };
 
-} // namespace dynamic_traj_generator
+}  // namespace dynamic_traj_generator
 
-#endif // __DYNAMIC_TRAJECTORY_HPP__
+#endif  // __DYNAMIC_TRAJECTORY_HPP__

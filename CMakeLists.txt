@@ -4,7 +4,6 @@ project(${PROJECT_NAME})
 
 # Default to C++17
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Eigen3 REQUIRED)
 
@@ -31,11 +30,15 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
   ${MATPLOTLIB_CPP_INCLUDE_DIRS}
-
 )
 
 # add_executable(${PROJECT_NAME}_node src/main_trajectory_publisher.cpp ${SOURCE_CPP_FILES} ${HEADER_HPP_FILES})
 # target_link_libraries(${PROJECT_NAME}_node nlopt glog::glog
+
+#create library and export it
+add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})
+target_link_libraries(${PROJECT_NAME} mav_trajectory_generation nlopt glog::glog)
+target_include_directories(${PROJECT_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS} ${MATPLOTLIB_CPP_INCLUDE_DIRS})
 
 #check if testing
 include(tests/profiling_cmake.cmake)

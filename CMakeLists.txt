@@ -28,6 +28,7 @@ set(SOURCE_CPP_FILES
 
 include_directories(
   include
+  include/${PROJECT_NAME}
   ${EIGEN3_INCLUDE_DIRS}
   ${MATPLOTLIB_CPP_INCLUDE_DIRS}
 )
@@ -37,7 +38,7 @@ include_directories(
 
 #create library and export it
 add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME} mav_trajectory_generation nlopt glog::glog)
+target_link_libraries(${PROJECT_NAME} mav_trajectory_generation nlopt )
 target_include_directories(${PROJECT_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS} ${MATPLOTLIB_CPP_INCLUDE_DIRS})
 
 #check if testing

@@ -2,6 +2,7 @@
 #define __LOGGING_UTILS_HPP__
 
 #include <chrono>
+#include <iostream>
 
 #define COUNT_TIME(_function_)                                                                                                                                     \
   {                                                                                                                                                                \
@@ -17,15 +18,15 @@
 #ifndef RCLCPP__LOGGER_HPP_
 
 template <typename T>
-void PRINT_STRINGS(const char *name, T t)
+static void PRINT_STRINGS(const char *name, T t)
 {
   std::cout << '[' << name << "]: " << t << std::endl;
 }
-void PRINT_STRINGS(const char *name, std::string s)
+static void PRINT_STRINGS(const char *name, std::string s)
 {
   std::cout << s << std::endl;
 }
-void PRINT_STRINGS(const char *name, const char *s)
+static void PRINT_STRINGS(const char *name, const char *s)
 {
   std::cout << s << std::endl;
 }

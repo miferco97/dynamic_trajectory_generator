@@ -38,15 +38,17 @@ public:
 
   DynamicWaypointModifier(const std::string &name)
       : name_(name){};
-
-  bool findWaypoint(const std::string &name, dynamic_traj_generator::DynamicWaypoint &waypoint, const dynamic_traj_generator::DynamicTrajectory &traj)
+  std::string getName() const { return name_; }
+  bool findWaypoint(const std::string &name, dynamic_traj_generator::DynamicWaypoint &waypoint, dynamic_traj_generator::DynamicTrajectory &traj)
   {
     auto waypoints = traj.getDynamicWaypoints();
     for (auto &elem : waypoints)
     {
       if (name == elem.getName())
-        waypoint = elem;
-      return true;
+      {
+        waypoint = dynamic_traj_generator::DynamicWaypoint(elem);
+        return true;
+      }
     }
     return false;
   }
@@ -58,13 +60,14 @@ public:
 
   bool modifyWaypointInTraj(dynamic_traj_generator::DynamicTrajectory &traj, double t)
   {
-    if (!has_waypoint_)
+    if (!has_waypoint_ || waypoint_modified_.getTime() < 0.1f)
     {
       loadWaypointFromTraj(traj);
     }
 
     if (has_waypoint_ && triggerModification(t))
     {
+      // std::cout << "Modifying waypoint " << name_ << " at time " << t << std::endl;
       updateModifiedPosition(t);
       traj.modifyWaypoint(name_, modified_position_);
       return true;
@@ -75,7 +78,7 @@ public:
 
   bool triggerModification(double t)
   {
-    static double last_trigger_time = 0;
+    static double last_trigger_time = t;
     if (t < waypoint_modified_.getTime() - 0.1 &&
         t > waypoint_modified_.getTime() - MAX_POINT_MOVEMENT_TIME && (t - last_trigger_time) > 1.0)
     {
@@ -129,8 +132,10 @@ public:
 
       for (auto &elem : dynamic_waypoint_modifiers_)
       {
-        if (change_traj = elem.modifyWaypointInTraj(traj, t))
+        if (elem.modifyWaypointInTraj(traj, t))
+        {
           figure.plotTraj(traj);
+        }
       }
 
       figure.setUAVposition(refs, t);

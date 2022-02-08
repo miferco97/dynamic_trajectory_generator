@@ -4,6 +4,10 @@
 #include "mav_trajectory_generation/trajectory.h"
 #include <chrono>
 #include <memory>
+#include <thread>
+#include <mutex>
+#include <functional>
+
 
 class ThreadSafeTrajectory
 {
@@ -83,11 +87,11 @@ public:
   {
     return other.trajectory_ptr_ != trajectory_ptr_;
   }
-  bool operator==(const nullptr_t &other) noexcept
+  bool operator==(const std::nullptr_t &other) noexcept
   {
     return trajectory_ptr_ == nullptr;
   }
-  bool operator!=(const nullptr_t &other) noexcept
+  bool operator!=(const std::nullptr_t &other) noexcept
   {
     return trajectory_ptr_ != nullptr;
   }

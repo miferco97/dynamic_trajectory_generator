@@ -46,6 +46,7 @@ namespace dynamic_traj_generator
       t_assigned_ = t;
     };
 
+    inline bool hasModifiers() const { return !modifiers_.empty(); };
     inline void setName(const std::string &name) { name_ = name; };
     inline void displaceIndex(int displacement) { index_ += displacement; };
     void resetWaypointWithCurrentPosition()

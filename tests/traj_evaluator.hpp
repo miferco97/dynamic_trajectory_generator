@@ -2,6 +2,7 @@
 #define __TEST_TRAJ_EVALUATOR_HPP__
 
 #include "dynamic_trajectory.hpp"
+#include "utils/logging_utils.hpp"
 #include "utils/plotting_utils.hpp"
 
 #include <chrono>
@@ -10,12 +11,12 @@
 #include <random>
 #include <thread>
 
-namespace plt = matplotlibcpp;
+/* namespace plt = matplotlibcpp; */
 
 #define MAX_POINT_MOVEMENT_DISTANCE 2.5
 #define MAX_POINT_MOVEMENT_TIME 5
 
-Eigen::Vector3d poseRandomizer(const Eigen::Vector3d &v, double movement_distance = MAX_POINT_MOVEMENT_DISTANCE)
+static Eigen::Vector3d poseRandomizer(const Eigen::Vector3d &v, double movement_distance = MAX_POINT_MOVEMENT_DISTANCE)
 {
   Eigen::Vector3d ret = v;
   for (int i = 0; i < 3; i++)
@@ -132,10 +133,11 @@ public:
 
       for (auto &elem : dynamic_waypoint_modifiers_)
       {
-        if (elem.modifyWaypointInTraj(traj, t))
-        {
-          figure.plotTraj(traj);
-        }
+        elem.modifyWaypointInTraj(traj, t);
+      }
+      if(traj.getWasTrajectoryRegenerated()){
+        /* DYNAMIC_LOG("Trajectory was regenerated"); */
+        figure.plotTraj(traj);
       }
 
       figure.setUAVposition(refs, t);

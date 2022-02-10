@@ -101,7 +101,7 @@ public:
     for (int i = 0; i < n_samples; i++)
     {
       double t_eval = t_start + i * dt;
-      traj.evaluateTrajectory(t_eval, refs, true);
+      traj.evaluateForPlotting(t_eval, refs, true);
       plot_x[i] = refs.position(0);
       ploy_y[i] = refs.position(1);
       plot_z[i] = refs.position(2);
@@ -144,7 +144,8 @@ public:
       {
         segments_time[i + 1] = segments_time[i] + segments[i].getTime();
       }
-      traj.evaluateTrajectory(segments_time[i], ref, true);
+      traj.evaluateForPlotting(segments_time[i], ref, true);
+
       if (waypoints_dyn[i].getName() != "")
       {
         Eigen::Vector3d waypoint_vec;

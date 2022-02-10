@@ -4,4 +4,4 @@ build/
 Debug/
 compile_commands.json
 neovim.json
-
+.vim*

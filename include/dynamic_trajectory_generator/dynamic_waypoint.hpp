@@ -52,19 +52,23 @@ namespace dynamic_traj_generator
     void resetWaypointWithCurrentPosition()
     {
       original_position_ = current_position_;
+      vertex_.addConstraint(0, current_position_);
       modifiers_.clear();
     };
     void resetWaypoint(const Eigen::Vector3d &position)
     {
       original_position_ = position;
       current_position_ = position;
+      vertex_.addConstraint(0, current_position_);
+      
       modifiers_.clear();
     };
 
     void setCurrentPosition(Eigen::Vector3d position, double actual_time = 0.0f);
     Eigen::Vector3d trajectoryCompensation(double t, int derivative_order = 0);
 
-    inline mav_trajectory_generation::Vertex getVertex() const { return vertex_; };
+    inline mav_trajectory_generation::Vertex getVertex() const { 
+      return vertex_; };
 
     inline std::string getName() const { return name_; };
     inline int getIndex() const { return index_; };

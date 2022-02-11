@@ -33,6 +33,7 @@ namespace dynamic_traj_generator
   void DynamicWaypoint::setCurrentPosition(Eigen::Vector3d position, double actual_time)
   {
 
+    vertex_.addConstraint(0, position);
     std::array<GaussianModifier, 3> modifiers;
     for (int i = 0; i < 3; i++)
     {

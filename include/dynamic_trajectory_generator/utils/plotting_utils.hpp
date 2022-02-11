@@ -101,7 +101,7 @@ public:
     for (int i = 0; i < n_samples; i++)
     {
       double t_eval = t_start + i * dt;
-      traj.evaluateForPlotting(t_eval, refs, true);
+      traj.evaluateTrajectory(t_eval, refs, true, true);
       plot_x[i] = refs.position(0);
       ploy_y[i] = refs.position(1);
       plot_z[i] = refs.position(2);
@@ -114,56 +114,27 @@ public:
     static_plots_3d_.emplace_back(plot_x, ploy_y, plot_z, color, PlotMode::LINE);
     static_plots_2d_.emplace_back(plot_time, plot_x, ploy_y, plot_z, color, PlotMode::LINE);
 
-    auto waypoints = traj.getWaypoints();
-    auto segments = traj.getSegments();
-
-    auto waypoints_x = std::vector<double>(waypoints.size());
-    auto waypoints_y = std::vector<double>(waypoints.size());
-    auto waypoints_z = std::vector<double>(waypoints.size());
-
     auto waypoints_dyn = traj.getDynamicWaypoints();
     std::vector<double> waypoints_x_dyn;
     std::vector<double> waypoints_y_dyn;
     std::vector<double> waypoints_z_dyn;
     std::vector<double> time_dyn;
 
-    auto segments_time = std::vector<double>(waypoints.size(), 0);
-
-    if (waypoints_dyn.size() != waypoints.size())
+    for (int i = 0; i < waypoints_dyn.size(); i++)
     {
-      throw std::runtime_error("dynamic_waypoints_with_different_sizes");
-    }
-
-    // DYNAMIC_LOG(segments.size());
-    // DYNAMIC_LOG(waypoints.size());
-    for (int i = 0; i < waypoints.size(); i++)
-    {
-
-      dynamic_traj_generator::References ref;
-      if (i < segments.size())
-      {
-        segments_time[i + 1] = segments_time[i] + segments[i].getTime();
-      }
-      traj.evaluateForPlotting(segments_time[i], ref, true);
-
-      if (waypoints_dyn[i].getName() != "")
+      /* if (waypoints_dyn[i].getName() != "") */
+      if (true)
       {
         Eigen::Vector3d waypoint_vec;
         waypoint_vec = waypoints_dyn[i].getCurrentPosition();
         waypoints_x_dyn.emplace_back(waypoint_vec(0));
         waypoints_y_dyn.emplace_back(waypoint_vec(1));
         waypoints_z_dyn.emplace_back(waypoint_vec(2));
-        time_dyn.emplace_back(segments_time[i]);
+        time_dyn.emplace_back(waypoints_dyn[i].getTime());
       }
-
-      waypoints_x[i] = ref.position(0);
-      waypoints_y[i] = ref.position(1);
-      waypoints_z[i] = ref.position(2);
     }
 
-    static_plots_3d_.emplace_back(waypoints_x, waypoints_y, waypoints_z, color, PlotMode::WAYPOINT);
-    // static_plots_3d_.emplace_back(waypoints_x_dyn, waypoints_y_dyn, waypoints_z_dyn, color, PlotMode::UAV);
-    static_plots_2d_.emplace_back(segments_time, waypoints_x, waypoints_y, waypoints_z, color, PlotMode::WAYPOINT);
+    static_plots_3d_.emplace_back(waypoints_x_dyn, waypoints_y_dyn, waypoints_z_dyn, color, PlotMode::WAYPOINT);
     static_plots_2d_.emplace_back(time_dyn, waypoints_x_dyn, waypoints_y_dyn, waypoints_z_dyn, color, PlotMode::UAV);
 
     mutex_.unlock();

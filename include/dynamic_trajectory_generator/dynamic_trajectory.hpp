@@ -14,7 +14,6 @@
 #define __SCREEN_OUTPUT__
 
 #include "dynamic_waypoint.hpp"
-#include "matplotlibcpp.h"
 #include "mav_trajectory_generation/polynomial_optimization_linear.h"
 #include "mav_trajectory_generation/polynomial_optimization_nonlinear.h"
 #include "mav_trajectory_generation/trajectory.h"

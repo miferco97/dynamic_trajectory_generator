@@ -36,20 +36,20 @@ static void PRINT_STRINGS(const char *name, const char *s)
 #else // RCLCPP__LOGGER_HPP_
 
 template <typename T>
-void PRINT_STRINGS(const char *name, T t)
+static void PRINT_ROS2_STRINGS(const char *name, T t)
 {
   RCLCPP_INFO(rclcpp::get_logger("dynamic_traj_generator"), "[%s]: %s", name, t);
 }
-void PRINT_STRINGS(const char *name, std::string s)
+static void PRINT_ROS2_STRINGS(const char *name, std::string s)
 {
   RCLCPP_INFO(rclcpp::get_logger("dynamic_traj_generator"), "%s", s.c_str());
 }
-void PRINT_STRINGS(const char *name, const char *s)
+static void PRINT_ROS2_STRINGS(const char *name, const char *s)
 {
   RCLCPP_INFO(rclcpp::get_logger("dynamic_traj_generator"), "%s", s);
 }
 
-#define DYNAMIC_LOG(x) PRINT_STRINGS(#x, x)
+#define DYNAMIC_LOG(x) PRINT_ROS2_STRINGS(#x, x)
 
 #endif // RCLCPP__LOGGER_HPP_
 

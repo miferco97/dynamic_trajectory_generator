@@ -41,8 +41,8 @@ add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})
 target_link_libraries(${PROJECT_NAME} mav_trajectory_generation nlopt )
 target_include_directories(${PROJECT_NAME} PUBLIC include include/${PROJECT_NAME} ${EIGEN3_INCLUDE_DIRS} ${MATPLOTLIB_CPP_INCLUDE_DIRS})
 
-#check if testing
-include(tests/profiling_cmake.cmake)
-
-add_executable(compilation_tests tests/compilation_tests.cpp )
-target_link_libraries(compilation_tests ${PROJECT_NAME} mav_trajectory_generation python3.8)
+#check if tests are enabled
+if (${PROJECT_NAME}_TESTS_ENABLED)
+  add_executable(compilation_tests tests/compilation_tests.cpp )
+  target_link_libraries(compilation_tests ${PROJECT_NAME} mav_trajectory_generation python3.8)
+endif()

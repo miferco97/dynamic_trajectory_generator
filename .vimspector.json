@@ -1,0 +1,14 @@
+{
+  "configurations" : {
+    "Launch":{
+      "adapter": "vscode-cpptools",
+      "configuration":{
+        "request": "launch",
+        "program": "build/linux-debug/compilation_tests",
+        "cwd": "${workspaceFolder}",
+        "externalConsole": true,
+        "MIMode": "gdb"
+      }
+    }
+  }
+}

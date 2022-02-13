@@ -14,7 +14,7 @@
 /* namespace plt = matplotlibcpp; */
 
 #define MAX_POINT_MOVEMENT_DISTANCE 2.5
-#define MAX_POINT_MOVEMENT_TIME 5
+#define MAX_POINT_MOVEMENT_TIME 10
 
 static Eigen::Vector3d poseRandomizer(const Eigen::Vector3d &v,
                                       double movement_distance = MAX_POINT_MOVEMENT_DISTANCE) {
@@ -69,7 +69,7 @@ class DynamicWaypointModifier {
 
   bool triggerModification(double t) {
     static double last_trigger_time = t;
-    if (t < waypoint_modified_.getTime() - 0.1 &&
+    if (t < waypoint_modified_.getTime() - 0.3 &&
         t > waypoint_modified_.getTime() - MAX_POINT_MOVEMENT_TIME &&
         (t - last_trigger_time) > 1.0) {
       last_trigger_time = t;
@@ -82,8 +82,8 @@ class DynamicWaypointModifier {
     static double multiplier_reduced = 1.0;
     // modified_position_ = poseRandomizer(modified_position_, MAX_POINT_MOVEMENT_DISTANCE *
     // multiplier_reduced); multiplier_reduced *= 0.75j
-    /* modified_position_ = modified_position_ + Eigen::Vector3d(0.2, 0.2, 0.2); */
-    modified_position_ = modified_position_ + Eigen::Vector3d(1.0, 1.0, 1.0);
+    modified_position_ = modified_position_ + Eigen::Vector3d(0.2, 0.2, 0.2);
+    /* modified_position_ = modified_position_ + Eigen::Vector3d(1.0, 1.0, 1.0); */
   };
 };
 
@@ -135,7 +135,7 @@ class TrajEvaluator {
       }
 
       figure.setUAVposition(refs, t);
-    } while (t < end_time);
+    } while (t < traj.getMaxTime());
   };
 };
 

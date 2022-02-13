@@ -28,6 +28,10 @@
 #define TIME_CONSTANT 1.0
 #define SECURITY_ZONE_MULTIPLIER 0.000  // TODO : This means no security zone
 
+#define SECURITY_TIME_BEFORE_WAYPOINT 4.0
+// #define SECURITY_TIME_BEFORE_WAYPOINT \
+//   (SECURITY_ZONE_MULTIPLIER * computeSecurityTime(dynamic_waypoints_.size(), TIME_CONSTANT))
+
 constexpr float AsyntoticComplexity(int n) {
   float value = n * n;  // TODO: CALCULATE THIS CORRECTLY
   return value;
@@ -139,7 +143,7 @@ class DynamicTrajectory {
   bool checkTrajectoryModifiers();
   bool checkTrajectoryGenerated();
   bool checkIfTrajectoryIsAlreadyGenerated() { return traj_ != nullptr; };
-  void waitUntilTrajectoryIsGenerated(){checkTrajectoryGenerated();};
+  void waitUntilTrajectoryIsGenerated() { checkTrajectoryGenerated(); };
 
   void swapTrajectory();
   void swapDynamicWaypoints();

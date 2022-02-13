@@ -176,18 +176,10 @@ double DynamicTrajectory::convertIntoGlobalTime(double t) {
 void DynamicTrajectory::todoThreadLoop() {
   while (!stop_process_) {
     if (generate_new_traj_ && checkIfTrajectoryCanBeGenerated()) {
-      /* static bool first_time = true; */
-      /* if (first_time) { */
-      /*   DYNAMIC_LOG("Generating new trajectory"); */
-      /*   first_time = false; */
-      /* } else { */
-      /*   generate_new_traj_ = false; */
-      /*   continue; */
-      /* } */
-
       next_trajectory_waypoint_ = generateWaypointsForTheNextTrajectory();
       // TODO: FIX WAYPOINTS==1
-      if (next_trajectory_waypoint_.size() == 0 || next_trajectory_waypoint_.size() == 1) {
+      if (next_trajectory_waypoint_.size() == 0 ||
+          (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory())) {
         DYNAMIC_LOG("No waypoints to generate a new trajectory");
         generate_new_traj_ = false;
         continue;
@@ -205,21 +197,19 @@ void DynamicTrajectory::todoThreadLoop() {
             parameters_.last_local_time_evaluated, next_trajectory_waypoint_);
       }
 
-      DYNAMIC_LOG(next_trajectory_waypoint_.size());
       generateTrajectory(next_trajectory_waypoint_, parameters_.speed);
+      // DYNAMIC_LOG(next_trajectory_waypoint_.size());
       generate_new_traj_ = false;
     }
 
-    /* else if (waypoints_to_be_modified_.size() && !computing_new_trajectory_) { */
-    else if (false) {
-    /* else if (true) { */
-      /* DYNAMIC_LOG("Modifying waypoints"); */
+    else if (waypoints_to_be_modified_.size() && !computing_new_trajectory_) {
+      // DYNAMIC_LOG("Modifying waypoints");
       const std::lock_guard<std::mutex> lock(todo_mutex);
       for (auto &modification : waypoints_to_be_modified_) {
         bool modified = applyWaypointModification(modification.first, modification.second);
-        if (modified) {
-          DYNAMIC_LOG(modification.first);
-        }
+        // if (modified) {
+        //   DYNAMIC_LOG(modification.first);
+        // }
       }
       waypoints_to_be_modified_.clear();
     } else {
@@ -228,6 +218,7 @@ void DynamicTrajectory::todoThreadLoop() {
   }
   return;
 }
+
 ThreadSafeTrajectory DynamicTrajectory::computeTrajectory(const DynamicWaypoint::Deque &waypoints,
                                                           const bool &lineal_optimization) {
   float max_speed = new_parameters_.speed;
@@ -473,21 +464,17 @@ bool DynamicTrajectory::checkTrajectoryModifiers() {
 };
 
 bool DynamicTrajectory::checkInSecurityZone() {
-  return false;
+  if (traj_ == nullptr) return false;
   const std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
   parameters_mutex_.lock();
-  double last_t_eval = parameters_.last_local_time_evaluated;
+  double last_t_eval = parameters_.last_global_time_evaluated;
   parameters_mutex_.unlock();
-
   for (auto &waypoint : dynamic_waypoints_) {
     if (waypoint.getName() != "" && waypoint.getTime() > last_t_eval) {
-      const std::lock_guard<std::mutex> lock2(parameters_mutex_);
-      if (waypoint.getTime() - parameters_.last_local_time_evaluated >
-          SECURITY_ZONE_MULTIPLIER *
-              computeSecurityTime(dynamic_waypoints_.size(), TIME_CONSTANT)) {
+      if (waypoint.getTime() - last_t_eval > SECURITY_TIME_BEFORE_WAYPOINT) {
         return false;
-        DYNAMIC_LOG("Not in security zone");
       } else {
+        DYNAMIC_LOG("[DEBUG] in security zone");
         return true;
       }
     }

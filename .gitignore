@@ -5,4 +5,5 @@ Debug/
 compile_commands.json
 neovim.json
 *.session
+COLCON_IGNORE
 ~/

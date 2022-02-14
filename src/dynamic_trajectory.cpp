@@ -387,7 +387,7 @@ void DynamicTrajectory::filterPassedWaypoints(DynamicWaypoint::Deque &waypoints)
   double last_t_eval = parameters_.last_global_time_evaluated;
   parameters_mutex_.unlock();
   for (auto it = waypoints.begin(); it != waypoints.end();) {
-    if (it->getTime() < last_t_eval) {
+    if (it->getTime() < last_t_eval && it->getTime() != 0.0f) {
       DYNAMIC_LOG("Removing waypoint ");
       it = waypoints.erase(it);
     } else {
@@ -404,6 +404,7 @@ DynamicWaypoint::Deque DynamicTrajectory::generateWaypointsForTheNextTrajectory(
     /* if (waypoints_to_be_added_.size() == 0 && !checkTrajectoryModifiers()) {
      */
     /*   return next_trajectory_waypoints; */
+
     /* } */
     next_trajectory_waypoints = (dynamic_waypoints_);
     updateDynamicWaypointsPosition(next_trajectory_waypoints);
@@ -427,7 +428,17 @@ DynamicWaypoint::Deque DynamicTrajectory::generateWaypointsForTheNextTrajectory(
 /****************************** CHECK FUNCTIONS *******************************/
 /******************************************************************************/
 
-bool DynamicTrajectory::checkStitchTrajectory() { return traj_ != nullptr; }
+bool DynamicTrajectory::checkStitchTrajectory() {
+  parameters_mutex_.lock();
+  double last_t_eval = parameters_.last_global_time_evaluated;
+  parameters_mutex_.unlock();
+  bool security_time = true;
+
+  if (last_t_eval + SECURITY_TIME_BEFORE_WAYPOINT > this->getMaxTime()) {
+    security_time = false;
+  }
+  return traj_ != nullptr && security_time;
+}
 bool DynamicTrajectory::checkTrajectoryGenerated() {
   while (traj_ == nullptr) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));

@@ -9,6 +9,7 @@
 #include <random>
 #include <thread>
 #include <vector>
+#include "matplotlibcpp.h"
 
 #include "dynamic_trajectory.hpp"
 

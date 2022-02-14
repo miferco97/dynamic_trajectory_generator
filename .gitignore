@@ -4,4 +4,5 @@ build/
 Debug/
 compile_commands.json
 neovim.json
+*.session
 ~/

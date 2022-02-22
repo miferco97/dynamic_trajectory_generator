@@ -498,6 +498,7 @@ namespace dynamic_traj_generator
 
       /* } */
       next_trajectory_waypoints = (dynamic_waypoints_);
+      filterPassedWaypoints(next_trajectory_waypoints);
       updateDynamicWaypointsPosition(next_trajectory_waypoints);
     }
     else
@@ -516,7 +517,6 @@ namespace dynamic_traj_generator
     waypoints_to_be_set_.clear();
     waypoints_to_be_added_.clear();
     waypoints_to_be_modified_.clear();
-    // filterPassedWaypoints(next_trajectory_waypoints);
     return next_trajectory_waypoints;
   }
   

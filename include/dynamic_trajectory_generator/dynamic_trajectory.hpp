@@ -153,7 +153,6 @@ namespace dynamic_traj_generator
     inline Eigen::Vector3d getVehiclePosition() const
     {
       std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
-      std::cout << vehicle_position_.transpose() << std::endl;
       return vehicle_position_ ;
     };
 

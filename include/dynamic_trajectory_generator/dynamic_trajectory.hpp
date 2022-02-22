@@ -89,12 +89,14 @@ namespace dynamic_traj_generator
     const int dimension_ = 3;
     std::atomic_bool from_scratch_ = true;
     const double a_max_ = MAV_MAX_ACCEL;
+    Eigen::Vector3d vehicle_position_;
 
     mutable std::mutex traj_mutex_;
     mutable std::mutex future_mutex_;
     mutable std::mutex dynamic_waypoints_mutex_;
     mutable std::mutex parameters_mutex_;
     mutable std::mutex todo_mutex;
+    mutable std::mutex vehicle_position_mutex_;
 
     dynamic_traj_generator::DynamicWaypoint::Deque dynamic_waypoints_;
     dynamic_traj_generator::DynamicWaypoint::Deque next_trajectory_waypoint_;
@@ -106,6 +108,7 @@ namespace dynamic_traj_generator
     std::atomic_bool computing_new_trajectory_ = false;
     std::atomic_bool stop_process_ = false;
     std::atomic_bool trajectory_regenerated_ = false;
+    
 
     std::thread waitForGeneratingNewTraj_thread_;
 
@@ -138,9 +141,20 @@ namespace dynamic_traj_generator
     double getSpeed() const;
     double getTimeCompensation();
     bool getWasTrajectoryRegenerated();
+    inline void updateVehiclePosition(const Eigen::Vector3d &position){
+      std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
+      vehicle_position_ = position;
+    };
+
 
   private:
     // PRIVATE FUNCTIONS
+
+    inline Eigen::Vector3d getVehiclePosition() const
+    {
+      std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
+      return vehicle_position_ ;
+    };
 
     double convertIntoGlobalTime(double t);
     double convertFromGlobalTime(double t);

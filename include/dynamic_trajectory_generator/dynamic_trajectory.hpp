@@ -169,6 +169,7 @@ namespace dynamic_traj_generator
 
     void swapTrajectory();
     void swapDynamicWaypoints();
+    void appendDronePositionWaypoint(DynamicWaypoint::Deque& waypoints);
 
     void todoThreadLoop();
     double computeSecurityTime(int n, double TimeConstant)

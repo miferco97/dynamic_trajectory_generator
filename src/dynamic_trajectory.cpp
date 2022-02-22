@@ -3,6 +3,7 @@
 #include <future>
 #include <mutex>
 
+#include "dynamic_waypoint.hpp"
 #include "utils/logging_utils.hpp"
 
 namespace dynamic_traj_generator
@@ -215,7 +216,6 @@ namespace dynamic_traj_generator
       if (generate_new_traj_ && checkIfTrajectoryCanBeGenerated())
       {
         next_trajectory_waypoint_ = generateWaypointsForTheNextTrajectory();
-        // TODO: FIX WAYPOINTS==1
         if (next_trajectory_waypoint_.size() == 0 ||
             (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory()))
         {
@@ -231,15 +231,17 @@ namespace dynamic_traj_generator
 
         DYNAMIC_LOG("generate new trajectory");
         if (checkStitchTrajectory())
-        // if (false)
         {
           DYNAMIC_LOG("stitching new trajectory");
           next_trajectory_waypoint_ = stitchActualTrajectoryWithNewWaypoints(
               parameters_.last_local_time_evaluated, next_trajectory_waypoint_);
         }
+        else{
+          DYNAMIC_LOG("Trajectory by scratch");
+          appendDronePositionWaypoint(next_trajectory_waypoint_);
+        }
 
         generateTrajectory(next_trajectory_waypoint_, parameters_.speed);
-        // DYNAMIC_LOG(next_trajectory_waypoint_.size());
         generate_new_traj_ = false;
       }
 
@@ -250,9 +252,6 @@ namespace dynamic_traj_generator
         for (auto &modification : waypoints_to_be_modified_)
         {
           bool modified = applyWaypointModification(modification.first, modification.second);
-          // if (modified) {
-          //   DYNAMIC_LOG(modification.first);
-          // }
         }
         waypoints_to_be_modified_.clear();
       }
@@ -416,9 +415,9 @@ namespace dynamic_traj_generator
         {
           vertex.addConstraint(i, references[i]);
         }
-        std::cout << "waypoint position : " << references.position.transpose() << std::endl;
-        std::cout << "waypoint velocity : " << references.velocity.transpose() << std::endl;
-        std::cout << "waypoint acceleration : " << references.acceleration.transpose() << std::endl;
+        // std::cout << "waypoint position : " << references.position.transpose() << std::endl;
+        // std::cout << "waypoint velocity : " << references.velocity.transpose() << std::endl;
+        // std::cout << "waypoint acceleration : " << references.acceleration.transpose() << std::endl;
       }
       else
       {
@@ -433,14 +432,8 @@ namespace dynamic_traj_generator
     }
     // append the rest of the waypoints
 
-    bool first = true;
     for (auto &waypoint : waypoints)
     {
-      if (first == true)
-      {
-        first = false;
-        continue;
-      }
       new_waypoints.emplace_back(waypoint);
     }
     /* std::this_thread::sleep_for(std::chrono::milliseconds(1000)); */
@@ -526,6 +519,12 @@ namespace dynamic_traj_generator
     // filterPassedWaypoints(next_trajectory_waypoints);
     return next_trajectory_waypoints;
   }
+  
+  void DynamicTrajectory::appendDronePositionWaypoint(DynamicWaypoint::Deque& waypoints){
+    DynamicWaypoint waypoint;
+    waypoint.resetWaypoint(getVehiclePosition());
+    waypoints.emplace_front(waypoint);
+  }
 
   /******************************************************************************/
   /****************************** CHECK FUNCTIONS *******************************/
@@ -535,21 +534,24 @@ namespace dynamic_traj_generator
   {
     if (traj_ == nullptr)
       return false;
-
-    parameters_mutex_.lock();
-    double last_t_eval = parameters_.last_global_time_evaluated;
-    double previous_t_global = parameters_.global_time_last_trajectory_generated;
-    parameters_mutex_.unlock();
     bool security_time = true;
 
-    if (std::abs(last_t_eval - (traj_.getMaxTime() + previous_t_global)) < 0.2f)
+    DYNAMIC_LOG("loading parameters");
+    parameters_mutex_.lock();
+    double last_global_t_eval = parameters_.last_global_time_evaluated;
+    double previous_t_global = parameters_.global_time_last_trajectory_generated;
+    parameters_mutex_.unlock();
+    DYNAMIC_LOG("parameters loaded");
+
+    if ((traj_.getMaxTime() + previous_t_global) - last_global_t_eval  < 0.5f)
     {
       DYNAMIC_LOG("NOT STITCHING TRAJECTORY");
       security_time = false;
     }
-
+    DYNAMIC_LOG("trajectory_time evaluated");
     return security_time;
   }
+
   bool DynamicTrajectory::checkTrajectoryGenerated()
   {
     while (traj_ == nullptr)

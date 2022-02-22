@@ -163,6 +163,7 @@ namespace dynamic_traj_generator
     bool checkStitchTrajectory();
     bool checkInSecurityZone();
     bool checkTrajectoryModifiers();
+
     bool checkTrajectoryGenerated();
     bool checkIfTrajectoryIsAlreadyGenerated() { return traj_ != nullptr; };
     void waitUntilTrajectoryIsGenerated() { checkTrajectoryGenerated(); };

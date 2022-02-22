@@ -216,8 +216,9 @@ namespace dynamic_traj_generator
       if (generate_new_traj_ && checkIfTrajectoryCanBeGenerated())
       {
         next_trajectory_waypoint_ = generateWaypointsForTheNextTrajectory();
-        if (next_trajectory_waypoint_.size() == 0 ||
-            (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory()))
+        if (next_trajectory_waypoint_.size() == 0)
+          // ||
+          //   (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory()))
         {
           DYNAMIC_LOG("No waypoints to generate a new trajectory");
           generate_new_traj_ = false;

@@ -21,7 +21,7 @@
 #include "utils/logging_utils.hpp"
 #include "utils/traj_modifiers.hpp"
 
-#define MAV_MAX_ACCEL (1 * 9.81f)
+#define MAV_MAX_ACCEL (2.5 * 9.81f)
 #define N_WAYPOINTS_TO_APPEND 1
 #define TIME_STITCHING_SECURITY_COEF 0.9
 #define TIME_CONSTANT 1.0
@@ -77,9 +77,9 @@ namespace dynamic_traj_generator
       double global_time_last_trajectory_generated = 0.0f;
     } parameters_, new_parameters_;
 
-    // const int derivative_to_optimize_ =
-    // mav_trajectory_generation::derivative_order::JERK;
+    // const int derivative_to_optimize_ = mav_trajectory_generation::derivative_order::JERK;
     const int derivative_to_optimize_ = mav_trajectory_generation::derivative_order::ACCELERATION;
+    // const int derivative_to_optimize_ = mav_trajectory_generation::derivative_order::SNAP;
     // const int derivative_to_optimize_ =
     // mav_trajectory_generation::derivative_order::VELOCITY;
 
@@ -140,11 +140,11 @@ namespace dynamic_traj_generator
     double getSpeed() const;
     double getTimeCompensation();
     bool getWasTrajectoryRegenerated();
-    inline void updateVehiclePosition(const Eigen::Vector3d &position){
+    inline void updateVehiclePosition(const Eigen::Vector3d &position)
+    {
       std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
       vehicle_position_ = position;
     };
-
 
   private:
     // PRIVATE FUNCTIONS
@@ -152,7 +152,7 @@ namespace dynamic_traj_generator
     inline Eigen::Vector3d getVehiclePosition() const
     {
       std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
-      return vehicle_position_ ;
+      return vehicle_position_;
     };
 
     double convertIntoGlobalTime(double t);
@@ -169,7 +169,7 @@ namespace dynamic_traj_generator
 
     void swapTrajectory();
     void swapDynamicWaypoints();
-    void appendDronePositionWaypoint(DynamicWaypoint::Deque& waypoints);
+    void appendDronePositionWaypoint(DynamicWaypoint::Deque &waypoints);
 
     void todoThreadLoop();
     double computeSecurityTime(int n, double TimeConstant)

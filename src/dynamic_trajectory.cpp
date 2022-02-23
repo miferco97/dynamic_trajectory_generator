@@ -217,8 +217,8 @@ namespace dynamic_traj_generator
       {
         next_trajectory_waypoint_ = generateWaypointsForTheNextTrajectory();
         if (next_trajectory_waypoint_.size() == 0)
-          // ||
-          //   (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory()))
+        // ||
+        //   (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory()))
         {
           DYNAMIC_LOG("No waypoints to generate a new trajectory");
           generate_new_traj_ = false;
@@ -237,7 +237,8 @@ namespace dynamic_traj_generator
           next_trajectory_waypoint_ = stitchActualTrajectoryWithNewWaypoints(
               parameters_.last_local_time_evaluated, next_trajectory_waypoint_);
         }
-        else{
+        else
+        {
           DYNAMIC_LOG("Trajectory by scratch");
           appendDronePositionWaypoint(next_trajectory_waypoint_);
         }
@@ -291,10 +292,10 @@ namespace dynamic_traj_generator
     else
     {
       mav_trajectory_generation::NonlinearOptimizationParameters parameters;
-      parameters.max_iterations = 2000;
+      parameters.max_iterations = 2000; // 2000
       parameters.f_rel = 0.05;
       parameters.x_rel = 0.1;
-      parameters.time_penalty = 200.0;
+      parameters.time_penalty = 1000; // 200.0 con 500 va bien
       parameters.initial_stepsize_rel = 0.1;
       // parameters.inequality_constraint_tolerance = 0.1;
       parameters.inequality_constraint_tolerance = 0.2;
@@ -326,7 +327,7 @@ namespace dynamic_traj_generator
     computing_new_trajectory_ = true;
     std::lock_guard<std::mutex> lock(future_mutex_);
     future_traj_ =
-        std::async(std::launch::async, &DynamicTrajectory::computeTrajectory, this, waypoints, force);
+        std::async(std::launch::async, &DynamicTrajectory::computeTrajectory, this, waypoints, false);
   };
 
   void DynamicTrajectory::swapTrajectory()
@@ -520,8 +521,9 @@ namespace dynamic_traj_generator
     waypoints_to_be_modified_.clear();
     return next_trajectory_waypoints;
   }
-  
-  void DynamicTrajectory::appendDronePositionWaypoint(DynamicWaypoint::Deque& waypoints){
+
+  void DynamicTrajectory::appendDronePositionWaypoint(DynamicWaypoint::Deque &waypoints)
+  {
     DynamicWaypoint waypoint;
     waypoint.resetWaypoint(getVehiclePosition());
     waypoints.emplace_front(waypoint);
@@ -544,7 +546,7 @@ namespace dynamic_traj_generator
     parameters_mutex_.unlock();
     DYNAMIC_LOG("parameters loaded");
 
-    if ((traj_.getMaxTime() + previous_t_global) - last_global_t_eval  < 0.5f)
+    if ((traj_.getMaxTime() + previous_t_global) - last_global_t_eval < 0.5f)
     {
       DYNAMIC_LOG("NOT STITCHING TRAJECTORY");
       security_time = false;

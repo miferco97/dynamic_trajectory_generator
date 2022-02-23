@@ -108,7 +108,6 @@ namespace dynamic_traj_generator
     std::atomic_bool computing_new_trajectory_ = false;
     std::atomic_bool stop_process_ = false;
     std::atomic_bool trajectory_regenerated_ = false;
-    
 
     std::thread waitForGeneratingNewTraj_thread_;
 

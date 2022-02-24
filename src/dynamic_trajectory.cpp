@@ -92,7 +92,6 @@ bool DynamicTrajectory::evaluateTrajectory(const float &t, dynamic_traj_generato
   double local_time = convertFromGlobalTime(t);
   if (!for_plotting) {
     parameters_mutex_.lock();
-    dynamic_waypoints_mutex_.lock();
     parameters_.last_global_time_evaluated = global_time;
     parameters_.last_local_time_evaluated = local_time;
     parameters_mutex_.unlock();

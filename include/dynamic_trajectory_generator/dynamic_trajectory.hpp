@@ -21,13 +21,13 @@
 #include "utils/logging_utils.hpp"
 #include "utils/traj_modifiers.hpp"
 
-#define MAV_MAX_ACCEL (2.5 * 9.81f)
+#define MAV_MAX_ACCEL (1.5 * 9.81f)
 #define N_WAYPOINTS_TO_APPEND 1
 #define TIME_STITCHING_SECURITY_COEF 0.9
 #define TIME_CONSTANT 1.0
 #define SECURITY_ZONE_MULTIPLIER 5
 
- #define SECURITY_TIME_BEFORE_WAYPOINT 4.0
+ #define SECURITY_TIME_BEFORE_WAYPOINT 2.0
 
 #define TRAJECTORY_COMPUTATION_TIME \
   ( 2 * computeSecurityTime(dynamic_waypoints_.size()))

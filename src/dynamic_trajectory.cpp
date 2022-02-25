@@ -467,6 +467,8 @@ namespace dynamic_traj_generator
     {
       if (waypoint.getTime() < global_eval_t && waypoint.getTime()!= 0.0f)
       {
+        DYNAMIC_LOG("skip waypoint");
+        DYNAMIC_LOG(waypoint.getName());
         continue;
       }
       new_waypoints.emplace_back(waypoint);

@@ -305,15 +305,24 @@ void DynamicTrajectory::generateTrajectory(const DynamicWaypoint::DynamicWaypoin
 };
 
 void DynamicTrajectory::swapTrajectory() {
-  parameters_mutex_.lock();
+
+  
   if (from_scratch_) {
-    timeFittingWithVehiclePosition(vehicle_position_);
+    vehicle_position_mutex_.lock();
+    auto arg1 = vehicle_position_;
+    vehicle_position_mutex_.unlock();
+    timeFittingWithVehiclePosition(arg1);
     from_scratch_ = false;
   } else {
+    parameters_mutex_.lock();
+    auto arg1 = parameters_.last_global_time_evaluated;
+    auto arg2 = parameters_.last_local_time_evaluated;
+    parameters_mutex_.unlock();
     timeFittingWithVehiclePosition(evaluateModifiedTrajectory(
-        traj_, parameters_.last_global_time_evaluated, parameters_.last_local_time_evaluated));
+        traj_,arg1,arg2));
   }
 
+  parameters_mutex_.lock();
   parameters_ = new_parameters_;
   parameters_mutex_.unlock();
 
@@ -590,6 +599,7 @@ void DynamicTrajectory::timeFittingWithVehiclePosition(const Eigen::Vector3d veh
   auto pos = evaluateModifiedTrajectory(traj_, convertIntoGlobalTime(min_time), min_time, 0);
 
   double min_distance = (pos - vehicle_position).norm();
+
   for (double t = step; t < max_eval_time; t += step) {
     pos = evaluateModifiedTrajectory(traj_, convertIntoGlobalTime(t), t, 0);
     double distance = (pos - vehicle_position).norm();

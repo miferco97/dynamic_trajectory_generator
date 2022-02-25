@@ -62,6 +62,16 @@ namespace dynamic_traj_generator
     };
 
     void setCurrentPosition(Eigen::Vector3d position, double actual_time = 0.0f);
+    void setConstraint(int order, const Eigen::Vector3d &vector_constrait){
+      if (order == 0)
+      {
+        resetWaypoint(vector_constrait);
+      }
+      else
+      {
+        vertex_.addConstraint(order, vector_constrait);
+      }
+    };
     Eigen::Vector3d trajectoryCompensation(double t, int derivative_order = 0);
 
     inline mav_trajectory_generation::Vertex getVertex() const

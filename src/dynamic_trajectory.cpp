@@ -465,10 +465,8 @@ namespace dynamic_traj_generator
     double global_eval_t = convertIntoGlobalTime(local_eval_t);
     for (auto &waypoint : waypoints)
     {
-      if (waypoint.getTime() < global_eval_t && waypoint.getTime()!= 0.0f)
+      if (waypoint.getTime() < global_eval_t && waypoint.getTime() > 0.0f)
       {
-        DYNAMIC_LOG("skip waypoint");
-        DYNAMIC_LOG(waypoint.getName());
         continue;
       }
       new_waypoints.emplace_back(waypoint);

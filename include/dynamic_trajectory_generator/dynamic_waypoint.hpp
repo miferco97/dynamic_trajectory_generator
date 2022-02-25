@@ -16,7 +16,7 @@ namespace dynamic_traj_generator
     mav_trajectory_generation::Vertex vertex_;
     Eigen::Vector3d original_position_;
     Eigen::Vector3d current_position_;
-    double t_assigned_;
+    double t_assigned_ = 0.0f;
     std::string name_ = "";
     int index_ = -1;
 

@@ -461,9 +461,14 @@ namespace dynamic_traj_generator
       // local_eval_t += TRAJECTORY_COMPUTATION_TIME;
     }
     // append the rest of the waypoints
-
+    
+    double global_eval_t = convertIntoGlobalTime(local_eval_t);
     for (auto &waypoint : waypoints)
     {
+      if (waypoint.getTime() < global_eval_t && waypoint.getTime()!= 0.0f)
+      {
+        continue;
+      }
       new_waypoints.emplace_back(waypoint);
     }
     /* std::this_thread::sleep_for(std::chrono::milliseconds(1000)); */

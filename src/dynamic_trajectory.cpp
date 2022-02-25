@@ -181,6 +181,7 @@ namespace dynamic_traj_generator
   {
     const std::lock_guard<std::mutex> lock(parameters_mutex_);
     parameters_.speed = speed;
+    new_parameters_.speed = speed;
   };
 
   double DynamicTrajectory::getTimeCompensation()
@@ -459,8 +460,8 @@ namespace dynamic_traj_generator
       new_waypoints.emplace_back(vertex);
       // local_eval_t += (TIME_STITCHING_SECURITY_COEF / N_WAYPOINTS_TO_APPEND) *
       //                 computeSecurityTime(n_waypoints, new_parameters_.algorithm_time_constant);
-      local_eval_t += 0.5f;  // FIXME: hardcoded
-      // local_eval_t += TRAJECTORY_COMPUTATION_TIME;
+      // local_eval_t += 0.5f;  // FIXME: hardcoded
+      local_eval_t += TRAJECTORY_COMPUTATION_TIME;
     }
     // append the rest of the waypoints
     

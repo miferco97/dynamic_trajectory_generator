@@ -324,7 +324,7 @@ namespace dynamic_traj_generator
       index++;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(501));
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     time_measure_mutex_.lock();
 

@@ -589,10 +589,10 @@ void DynamicTrajectory::timeFittingWithVehiclePosition(const Eigen::Vector3d veh
   double min_time = 0.0f;
   auto pos = evaluateModifiedTrajectory(traj_, convertIntoGlobalTime(min_time), min_time, 0);
 
-  double min_distance = (pos - vehicle_position_).norm();
+  double min_distance = (pos - vehicle_position).norm();
   for (double t = step; t < max_eval_time; t += step) {
     pos = evaluateModifiedTrajectory(traj_, convertIntoGlobalTime(t), t, 0);
-    double distance = (pos - vehicle_position_).norm();
+    double distance = (pos - vehicle_position).norm();
     if (distance <= min_distance) {
       min_distance = distance;
       min_time = t;

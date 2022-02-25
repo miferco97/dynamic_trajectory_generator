@@ -248,7 +248,7 @@ namespace dynamic_traj_generator
           DYNAMIC_LOG("Trajectory by scratch");
           appendDronePositionWaypoint(next_trajectory_waypoint_);
         }
-        generateTrajectory(next_trajectory_waypoint_, parameters_.speed);
+        generateTrajectory(next_trajectory_waypoint_, false);
         generate_new_traj_ = false;
       }
 
@@ -273,7 +273,9 @@ namespace dynamic_traj_generator
   ThreadSafeTrajectory DynamicTrajectory::computeTrajectory(const DynamicWaypoint::Deque &waypoints,
                                                             const bool &lineal_optimization)
   {
-    float max_speed = new_parameters_.speed;
+    parameters_mutex_.lock();
+    float max_speed = parameters_.speed;
+    parameters_mutex_.unlock();
 
     /* auto vertices = extractVerticesFromWaypoints(waypoints); */
     auto vertices = extractVerticesFromWaypoints(next_trajectory_waypoint_);

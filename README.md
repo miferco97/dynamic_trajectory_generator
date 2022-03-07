@@ -1,5 +1,12 @@
 ## Dynamic Traj Generator
 
+
+Library for generating dynamic trajectories that changes over the time.
+
+
+
+
+
 TODO: 
 
   - [x] Remove ROS stuff

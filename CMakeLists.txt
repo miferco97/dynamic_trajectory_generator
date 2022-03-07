@@ -4,6 +4,7 @@ project(${PROJECT_NAME})
 
 # Default to C++17
 set(CMAKE_CXX_STANDARD 17)
+add_compile_options(-fPIC)
 
 find_package(Eigen3 REQUIRED)
 
@@ -41,10 +42,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC include include/${PROJECT_NAME
 #check if tests are enabled
 if (${PROJECT_NAME}_TESTS_ENABLED)
 # CPP matplotlib workaround
+  message(STATUS "Compilation tests enabled")
   set (CMAKE_CXX_FLAGS " -I/usr/include/python3.8 -lpython3.8")
   add_subdirectory(subpackages/matplotlib_cpp)
   include_directories(subpackages/matplotlib_cpp)
   include_directories(matplotlib_cpp_INCLUDE_DIRS)
   add_executable(compilation_tests tests/compilation_tests.cpp )
   target_link_libraries(compilation_tests ${PROJECT_NAME} mav_trajectory_generation python3.8)
+  # set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-fPIC")
+  # include(tests/profiling_cmake.cmake)
 endif()

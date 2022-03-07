@@ -17,6 +17,7 @@ endif(${benckmark_FOUND})
 include(GoogleTest)
 
 enable_testing()
+add_compile_options(-fPIC)
 # find all *.cpp files in the tests directory
 
 file(GLOB TEST_SOURCES tests/*benchmark.cpp )
@@ -30,6 +31,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
   string(SUBSTRING ${_src_filename} 0 ${final_length} TEST_NAME)
   
   add_executable(${TEST_NAME}_test ${TEST_SOURCE} ${SOURCE_CPP_FILES})
-  target_link_libraries(${TEST_NAME}_test benchmark::benchmark  mav_trajectory_generation python3.8)
+  # target_link_libraries(${TEST_NAME}_test benchmark::benchmark mav_trajectory_generation python3.8)
+  target_link_libraries(${TEST_NAME}_test ${PROJECT_NAME} benchmark::benchmark)
 
   endforeach()

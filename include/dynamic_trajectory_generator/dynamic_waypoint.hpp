@@ -57,11 +57,8 @@ namespace dynamic_traj_generator
     };
     void resetWaypoint(const Eigen::Vector3d &position)
     {
-      original_position_ = position;
       current_position_ = position;
-      vertex_.addConstraint(0, current_position_);
-
-      modifiers_.clear();
+      resetWaypointWithCurrentPosition();
     };
 
     void setCurrentPosition(Eigen::Vector3d position, double actual_time = 0.0f);

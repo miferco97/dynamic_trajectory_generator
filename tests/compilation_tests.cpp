@@ -40,6 +40,7 @@ int main()
     waypoints[3].setName("waypoint3");
     waypoints[4].setName("waypoint4");
 
+    traj.updateVehiclePosition(Eigen::Vector3d(-0.10f, 0, 0));
     traj.setSpeed(2.0f);
     traj.setWaypoints(waypoints);
     /* traj.generateTrajectory(2.0f); */

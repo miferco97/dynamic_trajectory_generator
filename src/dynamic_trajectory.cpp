@@ -329,7 +329,7 @@ namespace dynamic_traj_generator
       index++;
     }
 
-    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(501));
 
     time_measure_mutex_.lock();
 
@@ -488,6 +488,7 @@ namespace dynamic_traj_generator
       new_waypoints.emplace_back(vertex);
       // local_eval_t += (TIME_STITCHING_SECURITY_COEF / N_WAYPOINTS_TO_APPEND) *
       //                 computeSecurityTime(n_waypoints, new_parameters_.algorithm_time_constant);
+      //
       // local_eval_t += 0.5f;  // FIXME: hardcoded
       local_eval_t += TRAJECTORY_COMPUTATION_TIME;
     }
@@ -724,8 +725,8 @@ namespace dynamic_traj_generator
     parameters_mutex_.lock();
     double mid_time = parameters_.last_global_time_evaluated -
                       new_parameters_.global_time_last_trajectory_generated;
-    parameters_.t_offset = min_time - mid_time;
-    new_parameters_.t_offset = min_time - mid_time;
+    parameters_.t_offset = min_time - mid_time + step;
+    new_parameters_.t_offset = min_time - mid_time + step;
     parameters_mutex_.unlock();
     // new_parameters_.t_offset = min_time - mid_time + step;
 

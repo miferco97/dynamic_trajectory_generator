@@ -26,6 +26,7 @@ namespace dynamic_traj_generator
     vertices[vertices.size() - 1].addConstraint(1, Eigen::Vector3d(0, 0, 0));
     vertices[vertices.size() - 1].addConstraint(2, Eigen::Vector3d(0, 0, 0));
     return vertices;
+
   }
 
   static double getCummulativeTime(const mav_trajectory_generation::Segment::Vector &segments,

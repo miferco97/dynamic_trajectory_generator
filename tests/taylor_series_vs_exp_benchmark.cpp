@@ -4,6 +4,7 @@
 #include <cmath>
 #include <exception>
 #include <iostream>
+#include <vector>
 
 class gaussian
 {
@@ -122,7 +123,7 @@ BM_GAUSSIAN_ADDING(benchmark::State &state)
 {
   for (auto _ : state)
   {
-    state.PauseTiming();
+    // state.PauseTiming();
     std::vector<gaussian> gaussians(state.range(0), gaussian(1, 1));
     double mean, sigma, x;
     generaterRandomX(x);
@@ -132,7 +133,7 @@ BM_GAUSSIAN_ADDING(benchmark::State &state)
       gaussians[i] = gaussian(mean, sigma);
     }
 
-    state.ResumeTiming();
+    // state.ResumeTiming();
     add_multiple_gaussians(gaussians, x);
   }
 }
@@ -149,7 +150,7 @@ BM_TAYLOR_ADDING(benchmark::State &state)
 
   for (auto _ : state)
   {
-    state.PauseTiming();
+    // state.PauseTiming();
     for (int i = 0; i < state.range(0); i++)
     {
       double mean, sigma, x;
@@ -158,7 +159,7 @@ BM_TAYLOR_ADDING(benchmark::State &state)
       taylorSerie5terms taylor2(mean, sigma);
       taylor = taylor + taylor2;
     }
-    state.ResumeTiming();
+    // state.ResumeTiming();
     add_multiple_taylor(taylor, x);
   }
 }

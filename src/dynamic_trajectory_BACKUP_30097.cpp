@@ -23,8 +23,11 @@ namespace dynamic_traj_generator
     {
       vertices.emplace_back(waypoint.getVertex());
     }
+<<<<<<< HEAD
+=======
     vertices[vertices.size() - 1].addConstraint(1, Eigen::Vector3d(0, 0, 0));
     vertices[vertices.size() - 1].addConstraint(2, Eigen::Vector3d(0, 0, 0));
+>>>>>>> devel
     return vertices;
   }
 
@@ -106,7 +109,10 @@ namespace dynamic_traj_generator
     checkTrajectoryGenerated();
 
     double global_time = t;
+<<<<<<< HEAD
+=======
     // double global_time = t - time_constant_;
+>>>>>>> devel
     double local_time = convertFromGlobalTime(t);
     if (!for_plotting)
     {
@@ -116,7 +122,10 @@ namespace dynamic_traj_generator
       parameters_mutex_.unlock();
     }
     refs = getReferences(traj_, global_time, local_time, only_positions);
+<<<<<<< HEAD
+=======
     // DYNAMIC_LOG("returning evaluate trajectory");
+>>>>>>> devel
     return true;
   }
 
@@ -181,7 +190,10 @@ namespace dynamic_traj_generator
   {
     const std::lock_guard<std::mutex> lock(parameters_mutex_);
     parameters_.speed = speed;
+<<<<<<< HEAD
+=======
     new_parameters_.speed = speed;
+>>>>>>> devel
   };
 
   double DynamicTrajectory::getTimeCompensation()
@@ -219,9 +231,15 @@ namespace dynamic_traj_generator
       if (generate_new_traj_ && checkIfTrajectoryCanBeGenerated())
       {
         next_trajectory_waypoint_ = generateWaypointsForTheNextTrajectory();
+<<<<<<< HEAD
+        // TODO: FIX WAYPOINTS==1
+        if (next_trajectory_waypoint_.size() == 0 ||
+            (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory()))
+=======
         if (next_trajectory_waypoint_.size() == 0)
         // ||
         //   (next_trajectory_waypoint_.size() == 1 && !checkStitchTrajectory()))
+>>>>>>> devel
         {
           DYNAMIC_LOG("No waypoints to generate a new trajectory");
           generate_new_traj_ = false;
@@ -234,6 +252,10 @@ namespace dynamic_traj_generator
         parameters_mutex_.unlock();
 
         DYNAMIC_LOG("generate new trajectory");
+<<<<<<< HEAD
+        if (checkStitchTrajectory())
+        {
+=======
         time_measure_mutex_.lock();
         inital_time_traj_generation_ = std::chrono::steady_clock::now();
         time_measure_mutex_.unlock();
@@ -241,10 +263,93 @@ namespace dynamic_traj_generator
         if (checkStitchTrajectory())
         {
           from_scratch_ = false;
+>>>>>>> devel
           DYNAMIC_LOG("stitching new trajectory");
           next_trajectory_waypoint_ = stitchActualTrajectoryWithNewWaypoints(
               parameters_.last_local_time_evaluated, next_trajectory_waypoint_);
         }
+<<<<<<< HEAD
+
+        generateTrajectory(next_trajectory_waypoint_, parameters_.speed);
+        // DYNAMIC_LOG(next_trajectory_waypoint_.size());
+        generate_new_traj_ = false;
+      }
+
+      else if (waypoints_to_be_modified_.size() && !computing_new_trajectory_)
+      {
+        // DYNAMIC_LOG("Modifying waypoints");
+        const std::lock_guard<std::mutex> lock(todo_mutex);
+        for (auto &modification : waypoints_to_be_modified_)
+        {
+          bool modified = applyWaypointModification(modification.first, modification.second);
+          // if (modified) {
+          //   DYNAMIC_LOG(modification.first);
+          // }
+        }
+        waypoints_to_be_modified_.clear();
+      }
+      else
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
+    }
+    return;
+  }
+
+  ThreadSafeTrajectory DynamicTrajectory::computeTrajectory(const DynamicWaypoint::Deque &waypoints,
+                                                            const bool &lineal_optimization)
+  {
+    float max_speed = new_parameters_.speed;
+
+    /* auto vertices = extractVerticesFromWaypoints(waypoints); */
+    auto vertices = extractVerticesFromWaypoints(next_trajectory_waypoint_);
+    if (vertices.size() < 2)
+    {
+      throw std::runtime_error("Not enough waypoints");
+    }
+    const int N = 10;
+    std::shared_ptr<mav_trajectory_generation::Trajectory> trajectory =
+        std::make_shared<mav_trajectory_generation::Trajectory>();
+    auto segment_times =
+        mav_trajectory_generation::estimateSegmentTimes(vertices, max_speed, this->a_max_);
+    // Optimizer
+    if (lineal_optimization)
+    {
+      mav_trajectory_generation::PolynomialOptimization<N> opt(dimension_);
+      opt.setupFromVertices(vertices, segment_times, derivative_to_optimize_);
+      opt.solveLinear();
+      opt.getTrajectory((mav_trajectory_generation::Trajectory *)trajectory.get());
+    }
+    else
+    {
+      mav_trajectory_generation::NonlinearOptimizationParameters parameters;
+      parameters.max_iterations = 2000;
+      parameters.f_rel = 0.05;
+      parameters.x_rel = 0.1;
+      parameters.time_penalty = 200.0;
+      parameters.initial_stepsize_rel = 0.1;
+      // parameters.inequality_constraint_tolerance = 0.1;
+      parameters.inequality_constraint_tolerance = 0.2;
+      mav_trajectory_generation::PolynomialOptimizationNonLinear<N> opt(dimension_, parameters);
+      opt.setupFromVertices(vertices, segment_times, derivative_to_optimize_);
+      opt.addMaximumMagnitudeConstraint(mav_trajectory_generation::derivative_order::VELOCITY,
+                                        max_speed);
+      opt.addMaximumMagnitudeConstraint(mav_trajectory_generation::derivative_order::ACCELERATION,
+                                        a_max_);
+      opt.optimize();
+      opt.getTrajectory((mav_trajectory_generation::Trajectory *)trajectory.get());
+    }
+    mav_trajectory_generation::Segment::Vector segments;
+    trajectory->getSegments(&segments);
+    int index = 0;
+    for (auto &waypoint : next_trajectory_waypoint_)
+    {
+      waypoint.setIndex(index);
+      waypoint.setTime(getCummulativeTime(segments, waypoint.getIndex()) +
+                       new_parameters_.global_time_last_trajectory_generated);
+      index++;
+    }
+=======
         else
         {
           DYNAMIC_LOG("Trajectory by scratch");
@@ -341,6 +446,7 @@ namespace dynamic_traj_generator
     DYNAMIC_LOG(time_constant_);
     time_measure_mutex_.unlock();
 
+>>>>>>> devel
     return ThreadSafeTrajectory(std::move(trajectory));
   };
 
@@ -350,11 +456,21 @@ namespace dynamic_traj_generator
     computing_new_trajectory_ = true;
     std::lock_guard<std::mutex> lock(future_mutex_);
     future_traj_ =
+<<<<<<< HEAD
+        std::async(std::launch::async, &DynamicTrajectory::computeTrajectory, this, waypoints, force);
+=======
         std::async(std::launch::async, &DynamicTrajectory::computeTrajectory, this, waypoints, false);
+>>>>>>> devel
   };
 
   void DynamicTrajectory::swapTrajectory()
   {
+<<<<<<< HEAD
+    const std::lock_guard<std::mutex> lock(future_mutex_);
+    traj_ = std::move(future_traj_.get());
+    const std::lock_guard<std::mutex> lock3(parameters_mutex_);
+    parameters_ = new_parameters_;
+=======
 
     if (from_scratch_)
     {
@@ -381,15 +497,21 @@ namespace dynamic_traj_generator
     const std::lock_guard<std::mutex> lock(future_mutex_);
     traj_ = std::move(future_traj_.get());
 
+>>>>>>> devel
     trajectory_regenerated_ = true;
     DYNAMIC_LOG("Trajectory swapped");
   };
 
   void DynamicTrajectory::swapDynamicWaypoints()
   {
+<<<<<<< HEAD
+    const std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+    dynamic_waypoints_ = next_trajectory_waypoint_;
+=======
     dynamic_waypoints_mutex_.lock();
     dynamic_waypoints_ = next_trajectory_waypoint_;
     dynamic_waypoints_mutex_.unlock();
+>>>>>>> devel
     DYNAMIC_LOG("Waypoints swapped");
   }
 
@@ -397,9 +519,12 @@ namespace dynamic_traj_generator
                                                                 double global_time, double local_time,
                                                                 const int order)
   {
+<<<<<<< HEAD
+=======
     local_time += parameters_.t_offset;
     global_time += parameters_.t_offset;
 
+>>>>>>> devel
     Eigen::Vector3d refs;
     if (local_time < 0.0f)
     {
@@ -409,6 +534,145 @@ namespace dynamic_traj_generator
     if (local_time > traj.getMaxTime())
     {
       local_time = traj.getMaxTime();
+<<<<<<< HEAD
+    }
+    refs = traj.evaluate(local_time, order);
+    dynamic_waypoints_mutex_.lock();
+    for (auto &waypoint : dynamic_waypoints_)
+    {
+      if (waypoint.getName() == "")
+      {
+        continue;
+      }
+      refs += waypoint.trajectoryCompensation(global_time, order);
+    }
+    dynamic_waypoints_mutex_.unlock();
+    return refs;
+  }
+
+  bool DynamicTrajectory::applyWaypointModification(const std::string &name,
+                                                    const Eigen::Vector3d &position)
+  {
+    bool modified = false;
+    std::lock_guard<std::mutex> lock(dynamic_waypoints_mutex_);
+    for (auto &waypoint : dynamic_waypoints_)
+    {
+      if (waypoint.getName() == name && waypoint.getName() != "")
+      {
+        const std::lock_guard<std::mutex> lock3(parameters_mutex_);
+        waypoint.setCurrentPosition(position, parameters_.last_global_time_evaluated);
+        modified = true;
+        trajectory_regenerated_ = true;
+      }
+    }
+    return modified;
+  };
+
+  DynamicWaypoint::Deque DynamicTrajectory::stitchActualTrajectoryWithNewWaypoints(
+      double last_t_evaluated, const DynamicWaypoint::Deque &waypoints)
+  {
+    int n_waypoints = N_WAYPOINTS_TO_APPEND + waypoints.size();
+    DynamicWaypoint::Deque new_waypoints;
+    // Append the previous points to generate a smooth stitching
+
+    double local_eval_t = new_parameters_.last_local_time_evaluated;
+
+    for (int i_waypoints_appended = 0; i_waypoints_appended < N_WAYPOINTS_TO_APPEND;
+         i_waypoints_appended++)
+    {
+      dynamic_traj_generator::References references;
+      mav_trajectory_generation::Vertex vertex(3);
+      if (i_waypoints_appended == 0)
+      {
+        references = getReferences(traj_, convertIntoGlobalTime(local_eval_t), local_eval_t);
+        for (int i = 0; i < 3; i++)
+          vertex.addConstraint(i, references[i]);
+      }
+      else
+      {
+        references = getReferences(traj_, convertIntoGlobalTime(local_eval_t), local_eval_t, true);
+        vertex.addConstraint(mav_trajectory_generation::derivative_order::POSITION,
+                             references.position);
+      }
+      new_waypoints.emplace_back(vertex);
+      local_eval_t += (TIME_STITCHING_SECURITY_COEF / N_WAYPOINTS_TO_APPEND) *
+                      computeSecurityTime(n_waypoints, new_parameters_.algorithm_time_constant);
+    }
+    // append the rest of the waypoints
+    for (auto &waypoint : waypoints)
+    {
+      new_waypoints.emplace_back(waypoint);
+    }
+    /* std::this_thread::sleep_for(std::chrono::milliseconds(1000)); */
+    return new_waypoints;
+  };
+
+  static void updateDynamicWaypointsPosition(DynamicWaypoint::Deque &dynamic_waypoints)
+  {
+    for (auto &waypoint : dynamic_waypoints)
+    {
+      waypoint.resetWaypointWithCurrentPosition();
+    }
+  }
+
+  void resetWaypointThroughDeque(DynamicWaypoint::Deque &waypoints, const std::string &name,
+                                 const Eigen::Vector3d &position)
+  {
+    if (name == "")
+    {
+      return;
+    }
+    for (auto &waypoint : waypoints)
+    {
+      if (waypoint.getName() == name)
+      {
+        DYNAMIC_LOG("reseting waypoint ");
+        DYNAMIC_LOG(name);
+        waypoint.resetWaypoint(position);
+      }
+    }
+  };
+
+  void DynamicTrajectory::filterPassedWaypoints(DynamicWaypoint::Deque &waypoints)
+  {
+    parameters_mutex_.lock();
+    double last_t_eval = parameters_.last_global_time_evaluated;
+    parameters_mutex_.unlock();
+    for (auto it = waypoints.begin(); it != waypoints.end();)
+    {
+      if (it->getTime() < last_t_eval && it->getTime() != 0.0f)
+      {
+        DYNAMIC_LOG("Removing waypoint ");
+        it = waypoints.erase(it);
+      }
+      else
+      {
+        ++it;
+      }
+    }
+  }
+
+  DynamicWaypoint::Deque DynamicTrajectory::generateWaypointsForTheNextTrajectory()
+  {
+    DYNAMIC_LOG("Generating waypoints for the next trajectory");
+    const std::lock_guard<std::mutex> lock(todo_mutex);
+    DynamicWaypoint::Deque next_trajectory_waypoints;
+    if (waypoints_to_be_set_.size() == 0)
+    {
+      /* if (waypoints_to_be_added_.size() == 0 && !checkTrajectoryModifiers()) {
+       */
+      /*   return next_trajectory_waypoints; */
+
+      /* } */
+      next_trajectory_waypoints = (dynamic_waypoints_);
+      updateDynamicWaypointsPosition(next_trajectory_waypoints);
+    }
+    else
+    {
+      for (auto &waypoint : waypoints_to_be_set_)
+        next_trajectory_waypoints.emplace_back(waypoint);
+    }
+=======
       // if (order > 0) return Eigen::Vector3d::Zero();
     }
 
@@ -573,6 +837,7 @@ namespace dynamic_traj_generator
       for (auto &waypoint : waypoints_to_be_set_)
         next_trajectory_waypoints.emplace_back(waypoint);
     }
+>>>>>>> devel
     for (auto &waypoint : waypoints_to_be_added_)
     {
       next_trajectory_waypoints.emplace_back(waypoint);
@@ -584,6 +849,41 @@ namespace dynamic_traj_generator
     waypoints_to_be_set_.clear();
     waypoints_to_be_added_.clear();
     waypoints_to_be_modified_.clear();
+<<<<<<< HEAD
+    filterPassedWaypoints(next_trajectory_waypoints);
+    return next_trajectory_waypoints;
+  }
+
+  /******************************************************************************/
+  /****************************** CHECK FUNCTIONS *******************************/
+  /******************************************************************************/
+
+  bool DynamicTrajectory::checkStitchTrajectory()
+  {
+    parameters_mutex_.lock();
+    double last_t_eval = parameters_.last_global_time_evaluated;
+    parameters_mutex_.unlock();
+    bool security_time = true;
+
+    // if (last_t_eval + SECURITY_TIME_BEFORE_WAYPOINT > this->getMaxTime()) {
+    //   security_time = false;
+    // }
+
+    return traj_ != nullptr && security_time;
+  }
+  bool DynamicTrajectory::checkTrajectoryGenerated()
+  {
+    while (traj_ == nullptr)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      const std::lock_guard<std::mutex> lock(future_mutex_);
+      if (future_traj_.valid())
+      {
+        future_traj_.wait();
+        break;
+      }
+    }
+=======
     return next_trajectory_waypoints;
   }
 
@@ -636,6 +936,7 @@ namespace dynamic_traj_generator
         break;
       }
     }
+>>>>>>> devel
     future_mutex_.lock();
     bool future_traj_valid = future_traj_.valid();
     future_mutex_.unlock();
@@ -685,13 +986,24 @@ namespace dynamic_traj_generator
         }
         else
         {
+<<<<<<< HEAD
+          DYNAMIC_LOG("[DEBUG] in security zone");
+=======
           // DYNAMIC_LOG("[DEBUG] in security zone");
+>>>>>>> devel
           return true;
         }
       }
     }
     return false;
   };
+<<<<<<< HEAD
+
+  bool DynamicTrajectory::checkIfTrajectoryCanBeGenerated()
+  {
+    return !checkInSecurityZone() && !computing_new_trajectory_;
+  }
+=======
 
   bool DynamicTrajectory::checkIfTrajectoryCanBeGenerated()
   {
@@ -734,5 +1046,6 @@ namespace dynamic_traj_generator
     // new_parameters_.t_offset = (min_time - mid_time);
     DYNAMIC_LOG(new_parameters_.t_offset);
   };
+>>>>>>> devel
 
 } // namespace dynamic_traj_generator

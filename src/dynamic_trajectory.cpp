@@ -106,6 +106,7 @@ namespace dynamic_traj_generator
     checkTrajectoryGenerated();
 
     double global_time = t;
+    global_time += getTimeCompensation();
     // double global_time = t - time_constant_;
     double local_time = convertFromGlobalTime(t);
     if (!for_plotting)
@@ -399,8 +400,8 @@ namespace dynamic_traj_generator
                                                                 double global_time, double local_time,
                                                                 const int order)
   {
-    local_time += getTimeCompensation();  // parameters_.t_offset;
-    global_time += getTimeCompensation(); // parameters_.t_offset;
+    // local_time += getTimeCompensation();  // parameters_.t_offset;
+    // global_time += getTimeCompensation(); // parameters_.t_offset;
 
     Eigen::Vector3d refs;
     if (local_time < 0.0f)

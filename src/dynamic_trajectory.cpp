@@ -26,7 +26,6 @@ namespace dynamic_traj_generator
     vertices[vertices.size() - 1].addConstraint(1, Eigen::Vector3d(0, 0, 0));
     vertices[vertices.size() - 1].addConstraint(2, Eigen::Vector3d(0, 0, 0));
     return vertices;
-
   }
 
   static double getCummulativeTime(const mav_trajectory_generation::Segment::Vector &segments,
@@ -188,6 +187,7 @@ namespace dynamic_traj_generator
   double DynamicTrajectory::getTimeCompensation()
   {
     std::lock_guard<std::mutex> lock(parameters_mutex_);
+    // FIXME: AAAAAAAAAAAAAAH  MISSS HOOOOJOOOOOOOOOOOOOOOOOOOOOOOOS
     return parameters_.t_offset;
   }
 
@@ -306,7 +306,7 @@ namespace dynamic_traj_generator
       parameters.max_iterations = 2000; // 2000
       parameters.f_rel = 0.05;
       parameters.x_rel = 0.1;
-      parameters.time_penalty = 1000; // 200.0 con 500 va bien
+      parameters.time_penalty = 500; // 200.0 con 500 va bien
       parameters.initial_stepsize_rel = 0.1;
       // parameters.inequality_constraint_tolerance = 0.1;
       parameters.inequality_constraint_tolerance = 0.2;
@@ -330,7 +330,7 @@ namespace dynamic_traj_generator
       index++;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(501));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Test time
 
     time_measure_mutex_.lock();
 
@@ -356,13 +356,15 @@ namespace dynamic_traj_generator
 
   void DynamicTrajectory::swapTrajectory()
   {
+    const std::lock_guard<std::mutex> lock(future_mutex_);
+    Eigen::Vector3d position;
 
+    from_scratch_ = true;
     if (from_scratch_)
     {
       vehicle_position_mutex_.lock();
-      auto arg1 = vehicle_position_;
+      position = vehicle_position_;
       vehicle_position_mutex_.unlock();
-      timeFittingWithVehiclePosition(arg1);
       from_scratch_ = false;
     }
     else
@@ -371,16 +373,15 @@ namespace dynamic_traj_generator
       auto arg1 = parameters_.last_global_time_evaluated;
       auto arg2 = parameters_.last_local_time_evaluated;
       parameters_mutex_.unlock();
-      timeFittingWithVehiclePosition(evaluateModifiedTrajectory(
-          traj_, arg1, arg2));
+      position = evaluateModifiedTrajectory(traj_, arg1, arg2);
     }
+
+    traj_ = std::move(future_traj_.get());
+    timeFittingWithVehiclePosition(position);
 
     parameters_mutex_.lock();
     parameters_ = new_parameters_;
     parameters_mutex_.unlock();
-
-    const std::lock_guard<std::mutex> lock(future_mutex_);
-    traj_ = std::move(future_traj_.get());
 
     trajectory_regenerated_ = true;
     DYNAMIC_LOG("Trajectory swapped");
@@ -398,8 +399,8 @@ namespace dynamic_traj_generator
                                                                 double global_time, double local_time,
                                                                 const int order)
   {
-    local_time += parameters_.t_offset;
-    global_time += parameters_.t_offset;
+    local_time += getTimeCompensation();  // parameters_.t_offset;
+    global_time += getTimeCompensation(); // parameters_.t_offset;
 
     Eigen::Vector3d refs;
     if (local_time < 0.0f)
@@ -489,7 +490,6 @@ namespace dynamic_traj_generator
       new_waypoints.emplace_back(vertex);
       // local_eval_t += (TIME_STITCHING_SECURITY_COEF / N_WAYPOINTS_TO_APPEND) *
       //                 computeSecurityTime(n_waypoints, new_parameters_.algorithm_time_constant);
-      //
       // local_eval_t += 0.5f;  // FIXME: hardcoded
       local_eval_t += TRAJECTORY_COMPUTATION_TIME;
     }
@@ -704,11 +704,15 @@ namespace dynamic_traj_generator
     if (traj_ == nullptr)
       return;
 
-    const double step = 0.1f;
+    const double step = 0.03f;
     const double max_eval_time = 1.5 * TRAJECTORY_COMPUTATION_TIME;
 
     double min_time = 0.0f;
     auto pos = evaluateModifiedTrajectory(traj_, convertIntoGlobalTime(min_time), min_time, 0);
+    auto min_pos = pos;
+
+    std::cout << "VEHICLE POSITION" << std::endl;
+    std::cout << vehicle_position.transpose() << std::endl;
 
     double min_distance = (pos - vehicle_position).norm();
 
@@ -719,15 +723,23 @@ namespace dynamic_traj_generator
       if (distance <= min_distance)
       {
         min_distance = distance;
+        min_pos = pos;
         min_time = t;
       }
     }
 
+    std::cout << "JOINT POINT " << std::endl;
+    std::cout << min_pos.transpose() << std::endl;
+    std::cout << "DISTANCE" << std::endl;
+    std::cout << min_distance << std::endl;
+
     parameters_mutex_.lock();
     double mid_time = parameters_.last_global_time_evaluated -
                       new_parameters_.global_time_last_trajectory_generated;
-    parameters_.t_offset = min_time - mid_time + step;
-    new_parameters_.t_offset = min_time - mid_time + step;
+
+    parameters_.t_offset = min_time - mid_time;
+    new_parameters_.t_offset = min_time - mid_time;
+
     parameters_mutex_.unlock();
     // new_parameters_.t_offset = min_time - mid_time + step;
 

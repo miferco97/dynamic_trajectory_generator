@@ -103,7 +103,8 @@ namespace dynamic_traj_generator
   bool DynamicTrajectory::evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs,
                                              bool only_positions, bool for_plotting)
   {
-    /* if (!checkIfTrajectoryIsAlreadyGenerated()) return false; */
+    if (!checkIfTrajectoryIsAlreadyGenerated()) return false;
+    // DYNAMIC_LOG("Evaluating trajectory");
     checkTrajectoryGenerated();
 
     double global_time = t;
@@ -116,6 +117,10 @@ namespace dynamic_traj_generator
       parameters_.last_local_time_evaluated = local_time;
       parameters_mutex_.unlock();
     }
+
+    global_time += parameters_.t_offset;
+    local_time += parameters_.t_offset;
+
     refs = getReferences(traj_, global_time, local_time, only_positions);
     // DYNAMIC_LOG("returning evaluate trajectory");
     return true;
@@ -398,8 +403,8 @@ namespace dynamic_traj_generator
                                                                 double global_time, double local_time,
                                                                 const int order)
   {
-    local_time += parameters_.t_offset;
-    global_time += parameters_.t_offset;
+    // local_time += parameters_.t_offset;
+    // global_time += parameters_.t_offset;
 
     Eigen::Vector3d refs;
     if (local_time < 0.0f)
@@ -637,6 +642,8 @@ namespace dynamic_traj_generator
         break;
       }
     }
+
+    DYNAMIC_LOG("Checking trajectory generated");
     future_mutex_.lock();
     bool future_traj_valid = future_traj_.valid();
     future_mutex_.unlock();
@@ -726,7 +733,7 @@ namespace dynamic_traj_generator
     parameters_mutex_.lock();
     double mid_time = parameters_.last_global_time_evaluated -
                       new_parameters_.global_time_last_trajectory_generated;
-    parameters_.t_offset = min_time - mid_time + step;
+    // parameters_.t_offset = min_time - mid_time + step;
     new_parameters_.t_offset = min_time - mid_time + step;
     parameters_mutex_.unlock();
     // new_parameters_.t_offset = min_time - mid_time + step;

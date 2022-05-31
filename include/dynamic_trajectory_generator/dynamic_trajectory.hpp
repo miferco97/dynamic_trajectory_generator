@@ -170,7 +170,7 @@ class DynamicTrajectory {
 
   void swapTrajectory();
   void swapDynamicWaypoints();
-  void timeFittingWithVehiclePosition(const Eigen::Vector3d vehicle_position);
+  void timeFittingWithVehiclePosition(ThreadSafeTrajectory& traj,const Eigen::Vector3d vehicle_position);
   void appendDronePositionWaypoint(DynamicWaypoint::Deque &waypoints);
 
   double time_constant_ = 0.0f;

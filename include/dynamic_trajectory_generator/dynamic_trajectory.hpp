@@ -106,9 +106,6 @@ class DynamicTrajectory {
   dynamic_traj_generator::DynamicWaypoint::Deque dynamic_waypoints_;
   dynamic_traj_generator::DynamicWaypoint::Deque next_trajectory_waypoint_;
 
-  dynamic_traj_generator::DynamicWaypoint::Deque getNextTrajectoryWaypoints(){
-    std::unique_lock<std::mutex> uniqueLock(dynamic_waypoints_mutex_);
-    return next_trajectory_waypoint_;};
   
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_be_added_;
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_be_set_;
@@ -130,6 +127,16 @@ class DynamicTrajectory {
   ~DynamicTrajectory() {
     stop_process_ = true;
     waitForGeneratingNewTraj_thread_.join();
+  }
+
+  dynamic_traj_generator::DynamicWaypoint::Deque getNextTrajectoryWaypoints(){
+    std::unique_lock<std::mutex> uniqueLock(dynamic_waypoints_mutex_);
+    return next_trajectory_waypoint_;};
+
+  int getRemainingWaypoints(){
+    std::unique_lock<std::mutex> uniqueLock(dynamic_waypoints_mutex_);
+    return next_trajectory_waypoint_.size();};
+
   }
 
   // principal functions

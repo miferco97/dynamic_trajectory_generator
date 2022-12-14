@@ -137,8 +137,6 @@ class DynamicTrajectory {
     std::unique_lock<std::mutex> uniqueLock(dynamic_waypoints_mutex_);
     return next_trajectory_waypoint_.size();};
 
-  }
-
   // principal functions
   void setWaypoints(const DynamicWaypoint::Vector &waypoints);
   void appendWaypoint(const DynamicWaypoint &waypoint);

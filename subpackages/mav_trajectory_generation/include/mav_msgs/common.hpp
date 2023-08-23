@@ -30,7 +30,6 @@
 #endif
 
 #include <Eigen/Geometry>
-#include <boost/algorithm/clamp.hpp>
 
 namespace mav_msgs {
 
@@ -226,7 +225,10 @@ inline bool vectorFromRotationMatrix(const Eigen::Matrix3d& mat,
   
   // Compute cosine of angle and clamp in range [-1, 1]
   double cos_phi = (mat.trace() - 1.0) / 2.0;
-  double cos_phi_clamped = boost::algorithm::clamp(cos_phi, -1.0, 1.0);
+  // double cos_phi_clamped = boost::algorithm::clamp(cos_phi, -1.0, 1.0);
+  // use not boost
+  double cos_phi_clamped = std::max(-1.0, std::min(1.0, cos_phi));
+   
   double phi = std::acos(cos_phi_clamped);
   
   if (phi < kSmallValueCheck){

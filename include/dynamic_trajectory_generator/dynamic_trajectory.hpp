@@ -38,14 +38,17 @@
 // #define SECURITY_TIME_BEFORE_WAYPOINT \
 //   (SECURITY_ZONE_MULTIPLIER * computeSecurityTime(dynamic_waypoints_.size(), TIME_CONSTANT))
 
-namespace dynamic_traj_generator {
+namespace dynamic_traj_generator
+{
 
-struct References {
+struct References
+{
   Eigen::Vector3d position;
   Eigen::Vector3d velocity;
   Eigen::Vector3d acceleration;
 
-  Eigen::Vector3d &operator[](int index) {
+  Eigen::Vector3d & operator[](int index)
+  {
     switch (index) {
       case 0:
         return position;
@@ -59,10 +62,12 @@ struct References {
   }
 };
 
-class DynamicTrajectory {
-  private:
+class DynamicTrajectory
+{
+private:
   // MEMBER ATTRIBUTES
-  struct NumericParameters {
+  struct NumericParameters
+  {
     double algorithm_time_constant = TIME_CONSTANT;
     double last_local_time_evaluated = 0.0f;
     double t_offset = 0.0f;
@@ -106,7 +111,7 @@ class DynamicTrajectory {
   dynamic_traj_generator::DynamicWaypoint::Deque dynamic_waypoints_;
   dynamic_traj_generator::DynamicWaypoint::Deque next_trajectory_waypoint_;
 
-  
+
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_be_added_;
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_be_set_;
   std::vector<std::pair<std::string, Eigen::Vector3d>> waypoints_to_be_modified_;
@@ -118,43 +123,49 @@ class DynamicTrajectory {
 
   std::thread waitForGeneratingNewTraj_thread_;
 
-  public:
+public:
   // PUBLIC FUNCTIONS
 
-  DynamicTrajectory() {
+  DynamicTrajectory()
+  {
     waitForGeneratingNewTraj_thread_ = std::thread(&DynamicTrajectory::todoThreadLoop, this);
   }
-  ~DynamicTrajectory() {
+  ~DynamicTrajectory()
+  {
     stop_process_ = true;
     waitForGeneratingNewTraj_thread_.join();
   }
 
-  dynamic_traj_generator::DynamicWaypoint::Vector getNextTrajectoryWaypoints(){
+  dynamic_traj_generator::DynamicWaypoint::Vector getNextTrajectoryWaypoints()
+  {
     dynamic_traj_generator::DynamicWaypoint::Vector next_trajectory_waypoint;
     // find values that are in t > parameters.last_local_time_evaluated
-    // return a vector of waypoints 
+    // return a vector of waypoints
     parameters_mutex_.lock();
     double t = parameters_.last_global_time_evaluated;
     parameters_mutex_.unlock();
     std::unique_lock<std::mutex> uniqueLock(dynamic_waypoints_mutex_);
-    for (auto& waypoint : dynamic_waypoints_){
-      if (waypoint.getTime() > t){
+    for (auto & waypoint : dynamic_waypoints_) {
+      if (waypoint.getTime() > t) {
         next_trajectory_waypoint.emplace_back(waypoint);
       }
     }
     return next_trajectory_waypoint;
-  };
+  }
 
-  int getRemainingWaypoints(){
-    return getNextTrajectoryWaypoints().size();};
+  int getRemainingWaypoints()
+  {
+    return getNextTrajectoryWaypoints().size();
+  }
 
   // principal functions
-  void setWaypoints(const DynamicWaypoint::Vector &waypoints);
-  void appendWaypoint(const DynamicWaypoint &waypoint);
-  void modifyWaypoint(const std::string &name, const Eigen::Vector3d &position);
-  bool evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs,
-                          bool only_positions = false, bool for_plotting = false);
-  void generateTrajectory(const DynamicWaypoint::DynamicWaypoint::Deque &waypoints, bool force);
+  void setWaypoints(const DynamicWaypoint::Vector & waypoints);
+  void appendWaypoint(const DynamicWaypoint & waypoint);
+  void modifyWaypoint(const std::string & name, const Eigen::Vector3d & position);
+  bool evaluateTrajectory(
+    const float & t, dynamic_traj_generator::References & refs,
+    bool only_positions = false, bool for_plotting = false);
+  void generateTrajectory(const DynamicWaypoint::DynamicWaypoint::Deque & waypoints, bool force);
 
   // getters
   void setSpeed(double speed);
@@ -164,18 +175,21 @@ class DynamicTrajectory {
   double getSpeed() const;
   double getTimeCompensation();
   bool getWasTrajectoryRegenerated();
-  inline void updateVehiclePosition(const Eigen::Vector3d &position) {
+  bool getGenerateNewTraj()const;
+  inline void updateVehiclePosition(const Eigen::Vector3d & position)
+  {
     std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
     vehicle_position_ = position;
-  };
+  }
 
-  private:
+private:
   // PRIVATE FUNCTIONS
 
-  inline Eigen::Vector3d getVehiclePosition() const {
+  inline Eigen::Vector3d getVehiclePosition() const
+  {
     std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
     return vehicle_position_;
-  };
+  }
 
   double convertIntoGlobalTime(double t);
   double convertFromGlobalTime(double t);
@@ -186,34 +200,40 @@ class DynamicTrajectory {
   bool checkTrajectoryModifiers();
 
   bool checkTrajectoryGenerated();
-  bool checkIfTrajectoryIsAlreadyGenerated() { return traj_ != nullptr; };
-  void waitUntilTrajectoryIsGenerated() { checkTrajectoryGenerated(); };
+  bool checkIfTrajectoryIsAlreadyGenerated() {return traj_ != nullptr;}
+  void waitUntilTrajectoryIsGenerated() {checkTrajectoryGenerated();}
 
   void swapTrajectory();
   void swapDynamicWaypoints();
-  void timeFittingWithVehiclePosition(ThreadSafeTrajectory& traj,const Eigen::Vector3d vehicle_position);
-  void appendDronePositionWaypoint(DynamicWaypoint::Deque &waypoints);
+  void timeFittingWithVehiclePosition(
+    ThreadSafeTrajectory & traj,
+    const Eigen::Vector3d vehicle_position);
+  void appendDronePositionWaypoint(DynamicWaypoint::Deque & waypoints);
 
   double time_constant_ = 0.0f;
 
   void todoThreadLoop();
-  double computeSecurityTime(int n) const {
+  double computeSecurityTime(int n) const
+  {
     // return time_constant_ * n; // LINEAL APROXIMATION
     std::lock_guard<std::mutex> lock(time_measure_mutex_);
     return time_constant_;  // LINEAL APROXIMATION
   }
 
-  bool applyWaypointModification(const std::string &name, const Eigen::Vector3d &position);
-  ThreadSafeTrajectory computeTrajectory(const DynamicWaypoint::Deque &waypoints,
-                                         const bool &lineal_optimization = false);
+  bool applyWaypointModification(const std::string & name, const Eigen::Vector3d & position);
+  ThreadSafeTrajectory computeTrajectory(
+    const DynamicWaypoint::Deque & waypoints,
+    const bool & lineal_optimization = false);
 
-  Eigen::Vector3d evaluateModifiedTrajectory(const ThreadSafeTrajectory &traj, double global_time,
-                                             double local_time, const int order = 0);
+  Eigen::Vector3d evaluateModifiedTrajectory(
+    const ThreadSafeTrajectory & traj, double global_time,
+    double local_time, const int order = 0);
 
-  References getReferences(const ThreadSafeTrajectory &traj, double global_time, double local_time,
-                           const bool only_positions = false);
+  References getReferences(
+    const ThreadSafeTrajectory & traj, double global_time, double local_time,
+    const bool only_positions = false);
 
-  void filterPassedWaypoints(DynamicWaypoint::Deque &waypoints);
+  void filterPassedWaypoints(DynamicWaypoint::Deque & waypoints);
 
   /**
    * @brief
@@ -227,7 +247,7 @@ class DynamicTrajectory {
    * least t = Ct * f(n) sec
    */
   DynamicWaypoint::Deque stitchActualTrajectoryWithNewWaypoints(
-      double last_t_evaluated, const DynamicWaypoint::Deque &waypoints);
+    double last_t_evaluated, const DynamicWaypoint::Deque & waypoints);
   DynamicWaypoint::Deque generateWaypointsForTheNextTrajectory();
 };
 

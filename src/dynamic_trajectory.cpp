@@ -203,6 +203,10 @@ namespace dynamic_traj_generator
     trajectory_regenerated_ = false;
     return value;
   }
+  bool DynamicTrajectory::getGenerateNewTraj() const
+  {
+    return generate_new_traj_;
+  }
   /******************************************************************************/
   /***************************** PRIVATE INTERFACE ******************************/
   /******************************************************************************/

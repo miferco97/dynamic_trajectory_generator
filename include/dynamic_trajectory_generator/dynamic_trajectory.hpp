@@ -164,6 +164,7 @@ class DynamicTrajectory {
   double getSpeed() const;
   double getTimeCompensation();
   bool getWasTrajectoryRegenerated();
+  bool getGenerateNewTraj()const;
   inline void updateVehiclePosition(const Eigen::Vector3d &position) {
     std::lock_guard<std::mutex> lock(vehicle_position_mutex_);
     vehicle_position_ = position;

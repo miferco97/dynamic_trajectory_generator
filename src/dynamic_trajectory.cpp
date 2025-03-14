@@ -473,8 +473,8 @@ namespace dynamic_traj_generator
       if (i_waypoints_appended == 0)
       {
         references = getReferences(traj_, convertIntoGlobalTime(local_eval_t), local_eval_t);
-        // for (int i = 0; i < 3; i++)
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 3; i++)
+        // for (int i = 0; i < 1; i++)
         {
           vertex.addConstraint(i, references[i]);
         }

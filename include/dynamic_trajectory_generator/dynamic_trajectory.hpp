@@ -21,7 +21,7 @@
 #include "utils/logging_utils.hpp"
 #include "utils/traj_modifiers.hpp"
 
-#define MAV_MAX_ACCEL (2.0 * 9.81f)
+#define MAV_MAX_ACCEL (1.0 * 9.81f)
 #define N_WAYPOINTS_TO_APPEND 2
 #define TIME_STITCHING_SECURITY_COEF 0.9
 #define TIME_CONSTANT 1.0

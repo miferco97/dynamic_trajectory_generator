@@ -52,3 +52,8 @@ if (${PROJECT_NAME}_TESTS_ENABLED)
   # set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-fPIC")
   # include(tests/profiling_cmake.cmake)
 endif()
+
+# Check if tests are enabled
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()

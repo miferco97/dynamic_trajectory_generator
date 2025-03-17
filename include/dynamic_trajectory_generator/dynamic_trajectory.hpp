@@ -151,7 +151,12 @@ class DynamicTrajectory {
   // principal functions
   void setWaypoints(const DynamicWaypoint::Vector &waypoints);
   void appendWaypoint(const DynamicWaypoint &waypoint);
-  void modifyWaypoint(const std::string &name, const Eigen::Vector3d &position);
+  void modifyWaypoint(
+    const std::string & name, const Eigen::Vector3d & position,
+    bool generate_new_traj = true);
+  void modifyWaypoints(
+    const std::vector<std::pair<std::string,
+    Eigen::Vector3d>> & waypoints_to_modified);
   bool evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs,
                           bool only_positions = false, bool for_plotting = false);
   void generateTrajectory(const DynamicWaypoint::DynamicWaypoint::Deque &waypoints, bool force);

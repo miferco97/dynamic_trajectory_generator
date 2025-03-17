@@ -25,3 +25,25 @@ Bugs known:
 
 Dependencies:
 - YamlCPP (```$ sudo apt install libyaml-cpp* ```)
+
+
+### Test example
+
+Compile code:
+
+```bash
+mkdir build && cd build
+cmake .. -DBUILD_TESTING=ON && make
+```
+
+Run test from root directory:
+
+```bash
+./build/tests/dynamic_trajectory_generator_trajectory_test 
+```
+
+Plot results from root directory:
+
+```bash
+python3 tests/plot_results.py 
+```

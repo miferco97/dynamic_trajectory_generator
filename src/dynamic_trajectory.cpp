@@ -105,7 +105,6 @@ namespace dynamic_traj_generator
     const std::vector<std::pair<std::string,
     Eigen::Vector3d>> & waypoints_to_modified)
   {
-    const std::lock_guard<std::mutex> lock(todo_mutex);
     // check if the waypoint is already in the waypoints to be modified list
     for (const auto & waypoint : waypoints_to_modified) {
       modifyWaypoint(waypoint.first, waypoint.second, false);

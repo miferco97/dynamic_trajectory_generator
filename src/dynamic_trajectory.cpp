@@ -79,27 +79,39 @@ namespace dynamic_traj_generator
     generate_new_traj_ = true;
   }
 
-  void DynamicTrajectory::modifyWaypoint(const std::string &name, const Eigen::Vector3d &position)
+  void DynamicTrajectory::modifyWaypoint(
+    const std::string & name, const Eigen::Vector3d & position,
+    bool generate_new_traj)
   {
     const std::lock_guard<std::mutex> lock(todo_mutex);
     DYNAMIC_LOG("Modifying waypoint: ");
     // check if the waypoint is already in the waypoints to be modified list
-    auto iter = std::find_if(waypoints_to_be_modified_.begin(), waypoints_to_be_modified_.end(),
-                             [&name](const std::pair<std::string, Eigen::Vector3d> &waypoint)
-                             {
-                               return waypoint.first == name;
-                             });
-    if (iter == waypoints_to_be_modified_.end())
-    {
+    auto iter = std::find_if(
+      waypoints_to_be_modified_.begin(), waypoints_to_be_modified_.end(),
+      [&name](const std::pair<std::string, Eigen::Vector3d> & waypoint)
+      {
+        return waypoint.first == name;
+      });
+    if (iter == waypoints_to_be_modified_.end()) {
       waypoints_to_be_modified_.emplace_back(name, position);
-    }
-    else
-    {
+    } else {
       iter->first = name;
       iter->second = position;
     }
+    generate_new_traj_ = generate_new_traj;
+  }
+  
+  void DynamicTrajectory::modifyWaypoints(
+    const std::vector<std::pair<std::string,
+    Eigen::Vector3d>> & waypoints_to_modified)
+  {
+    const std::lock_guard<std::mutex> lock(todo_mutex);
+    // check if the waypoint is already in the waypoints to be modified list
+    for (const auto & waypoint : waypoints_to_modified) {
+      modifyWaypoint(waypoint.first, waypoint.second, false);
+    }
     generate_new_traj_ = true;
-  };
+  }
 
   bool DynamicTrajectory::evaluateTrajectory(const float &t, dynamic_traj_generator::References &refs,
                                              bool only_positions, bool for_plotting)

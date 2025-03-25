@@ -40,7 +40,7 @@ target_link_libraries(${PROJECT_NAME} mav_trajectory_generation nlopt )
 target_include_directories(${PROJECT_NAME} PUBLIC include include/${PROJECT_NAME} ${EIGEN3_INCLUDE_DIRS} )
 
 #check if tests are enabled
-if (${PROJECT_NAME}_TESTS_ENABLED)
+if (${PROJECT_NAME}_PROFILING_ENABLED)
 # CPP matplotlib workaround
   message(STATUS "Compilation tests enabled")
   set (CMAKE_CXX_FLAGS " -I/usr/include/python3.8 -lpython3.8")
@@ -54,6 +54,6 @@ if (${PROJECT_NAME}_TESTS_ENABLED)
 endif()
 
 # Check if tests are enabled
-if(BUILD_TESTING)
+if (${PROJECT_NAME}_TESTS_ENABLED)
   add_subdirectory(tests)
 endif()

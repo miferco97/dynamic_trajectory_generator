@@ -509,7 +509,7 @@ namespace dynamic_traj_generator
         // vertex.addConstraint(mav_trajectory_generation::derivative_order::POSITION,
         //                      references.position);
       }
-      new_waypoints.emplace_back(vertex);
+        new_waypoints.emplace_back(vertex,"stitching_point");
       // local_eval_t += (TIME_STITCHING_SECURITY_COEF / N_WAYPOINTS_TO_APPEND) *
       //                 computeSecurityTime(n_waypoints, new_parameters_.algorithm_time_constant);
       //

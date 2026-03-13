@@ -92,12 +92,13 @@ private:
 
 
 dynamic_traj_generator::DynamicWaypoint::Vector eigen_vector_to_dynamic_waypoint_vector(
-  const std::vector<Eigen::Vector3d> & vector_waypoints)
+  const std::vector<std::pair<std::string, Eigen::Vector3d>> & vector_waypoints)
 {
   dynamic_traj_generator::DynamicWaypoint::Vector vector_dynamic_waypoints;
   for (auto waypoint : vector_waypoints) {
     dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
-    dynamic_waypoint.resetWaypoint(waypoint);
+    dynamic_waypoint.resetWaypoint(waypoint.second);
+    dynamic_waypoint.setName(waypoint.first);
     vector_dynamic_waypoints.push_back(dynamic_waypoint);
   }
   return vector_dynamic_waypoints;
@@ -115,38 +116,40 @@ int main(int argc, char ** argv)
   Eigen::Vector3d initial_position = Eigen::Vector3d(8.0, 22.0, 1.23);
   double speed = 10.0;
 
-  std::vector<Eigen::Vector3d> vector_waypoints;
+  std::vector<std::pair<std::string, Eigen::Vector3d>> vector_waypoints;
 
   // First run
-  vector_waypoints.push_back(Eigen::Vector3d(14.0, 25.0, 1.23));  // Gate 1
-  vector_waypoints.push_back(Eigen::Vector3d(30.0, 19.0, 1.23));  // Gate 2
-  vector_waypoints.push_back(Eigen::Vector3d(46.0, 22.0, 1.23));  // Gate 3
-  vector_waypoints.push_back(Eigen::Vector3d(63.0, 20.0, 3.93));  // Gate 4
-  vector_waypoints.push_back(Eigen::Vector3d(84.0, 18.0, 3.93));  // Gate 5 prev
-  vector_waypoints.push_back(Eigen::Vector3d(86.0, 18.0, 3.93));  // Gate 5 post
-  vector_waypoints.push_back(Eigen::Vector3d(86.0, 18.0, 1.23));  // Gate 6 prev
-  vector_waypoints.push_back(Eigen::Vector3d(84.0, 18.0, 1.23));  // Gate 6 post
-  vector_waypoints.push_back(Eigen::Vector3d(68.0, 13.0, 1.23));  // Gate 7
-  vector_waypoints.push_back(Eigen::Vector3d(55.0, 7.0, 1.23));   // Gate 8
-  vector_waypoints.push_back(Eigen::Vector3d(37.0, 12.0, 1.23));  // Gate 9
-  vector_waypoints.push_back(Eigen::Vector3d(19.7, 7.0, 1.23));   // Gate 10
-  vector_waypoints.push_back(Eigen::Vector3d(9.0, 14.0, 1.23));   // Gate 11
-  // Second run
-  vector_waypoints.push_back(Eigen::Vector3d(14.0, 25.0, 1.23));  // Gate 1
-  vector_waypoints.push_back(Eigen::Vector3d(30.0, 19.0, 1.23));  // Gate 2
-  vector_waypoints.push_back(Eigen::Vector3d(46.0, 22.0, 1.23));  // Gate 3
-  vector_waypoints.push_back(Eigen::Vector3d(63.0, 20.0, 3.93));  // Gate 4
-  vector_waypoints.push_back(Eigen::Vector3d(84.0, 18.0, 3.93));  // Gate 5 prev
-  vector_waypoints.push_back(Eigen::Vector3d(86.0, 18.0, 3.93));  // Gate 5 post
-  vector_waypoints.push_back(Eigen::Vector3d(86.0, 18.0, 1.23));  // Gate 6 prev
-  vector_waypoints.push_back(Eigen::Vector3d(84.0, 18.0, 1.23));  // Gate 6 post
-  vector_waypoints.push_back(Eigen::Vector3d(68.0, 13.0, 1.23));  // Gate 7
-  vector_waypoints.push_back(Eigen::Vector3d(55.0, 7.0, 1.23));   // Gate 8
-  vector_waypoints.push_back(Eigen::Vector3d(37.0, 12.0, 1.23));  // Gate 9
-  vector_waypoints.push_back(Eigen::Vector3d(19.7, 7.0, 1.23));   // Gate 10
-  vector_waypoints.push_back(Eigen::Vector3d(9.0, 14.0, 1.23));   // Gate 11
+  vector_waypoints.push_back({"gate1_0", Eigen::Vector3d(14.0, 25.0, 1.23)});
+  vector_waypoints.push_back({"gate2_0", Eigen::Vector3d(30.0, 19.0, 1.23)});
+  vector_waypoints.push_back({"gate3_0", Eigen::Vector3d(46.0, 22.0, 1.23)});
+  vector_waypoints.push_back({"gate4_0", Eigen::Vector3d(63.0, 20.0, 3.93)});
+  vector_waypoints.push_back({"ls_gate5prev_0", Eigen::Vector3d(84.0, 18.0, 3.93)});
+  vector_waypoints.push_back({"ls_gate5post_0", Eigen::Vector3d(90.0, 16.0, 2.93)});
+  vector_waypoints.push_back({"ls_gate6prev_0", Eigen::Vector3d(86.0, 19.0, 1.5)});
+  vector_waypoints.push_back({"ls_gate6post_0", Eigen::Vector3d(84.0, 18.0, 1.23)});
+  vector_waypoints.push_back({"gate7_0", Eigen::Vector3d(68.0, 13.0, 1.23)});
+  vector_waypoints.push_back({"gate8_0", Eigen::Vector3d(55.0, 7.0, 1.23)});
+  vector_waypoints.push_back({"gate9_0", Eigen::Vector3d(37.0, 12.0, 1.23)});
+  vector_waypoints.push_back({"gate10_0", Eigen::Vector3d(19.7, 7.0, 1.23)});
+  vector_waypoints.push_back({"gate11_0", Eigen::Vector3d(9.0, 14.0, 1.23)});
+
+  // // Second run
+  // vector_waypoints.push_back({"gate1_1", Eigen::Vector3d(14.0, 25.0, 1.23)});
+  // vector_waypoints.push_back({"gate2_1", Eigen::Vector3d(30.0, 19.0, 1.23)});
+  // vector_waypoints.push_back({"gate3_1", Eigen::Vector3d(46.0, 22.0, 1.23)});
+  // vector_waypoints.push_back({"gate4_1", Eigen::Vector3d(63.0, 20.0, 3.93)});
+  // vector_waypoints.push_back({"ls_gate5prev_1", Eigen::Vector3d(84.0, 18.0, 3.93)});
+  // vector_waypoints.push_back({"ls_gate5post_1", Eigen::Vector3d(86.0, 18.0, 3.93)});
+  // vector_waypoints.push_back({"ls_gate6prev_1", Eigen::Vector3d(86.0, 18.0, 1.23)});
+  // vector_waypoints.push_back({"ls_gate6post_1", Eigen::Vector3d(84.0, 18.0, 1.23)});
+  // vector_waypoints.push_back({"gate7_1", Eigen::Vector3d(68.0, 13.0, 1.23)});
+  // vector_waypoints.push_back({"gate8_1", Eigen::Vector3d(55.0, 7.0, 1.23)});
+  // vector_waypoints.push_back({"gate9_1", Eigen::Vector3d(37.0, 12.0, 1.23)});
+  // vector_waypoints.push_back({"gate10_1", Eigen::Vector3d(19.7, 7.0, 1.23)});
+  // vector_waypoints.push_back({"gate11_1", Eigen::Vector3d(9.0, 14.0, 1.23)});
+
   // End point
-  vector_waypoints.push_back(Eigen::Vector3d(8.0, 22.0, 1.23));   // End point
+  vector_waypoints.push_back({"endpoint", Eigen::Vector3d(8.0, 22.0, 1.23)});
 
   // Initialize dynamic trajectory generator
   std::unique_ptr<DynamicTrajectory> trajectory_generator = std::make_unique<DynamicTrajectory>();

@@ -145,8 +145,24 @@ class DynamicTrajectory {
     return next_trajectory_waypoint;
   };
 
+  const bool getComputingNewTrajectoryStatus() const {
+    return computing_new_trajectory_;
+  }
+
   int getRemainingWaypoints(){
-    return getNextTrajectoryWaypoints().size();};
+    const auto& wps =getNextTrajectoryWaypoints();
+    int n_size = wps.size();
+    for (const auto& wp : wps){
+      if (wp.getName() == "stitching_point"){
+        n_size -= 1;
+      }
+      else{
+        break;
+      }
+      
+    }
+    return n_size;
+  }
 
   // principal functions
   void setWaypoints(const DynamicWaypoint::Vector &waypoints);

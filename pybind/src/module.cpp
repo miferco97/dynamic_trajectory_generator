@@ -55,6 +55,7 @@ PYBIND11_MODULE(_dynamic_trajectory_generator_cpp, m)
       py::arg("initial_yaw"),
       py::arg("waypoints"),
       py::arg("max_velocity"),
+      py::call_guard<py::gil_scoped_release>(),
       "Generate a polynomial trajectory from the current vehicle position through the given "
       "waypoints at the given maximum velocity. Blocks until the optimizer returns.")
     .def(
@@ -80,4 +81,31 @@ PYBIND11_MODULE(_dynamic_trajectory_generator_cpp, m)
       "get_was_trajectory_regenerated",
       &dynamic_traj_generator::DynamicTrajectoryBind::getWasTrajectoryRegenerated,
       "Return whether the trajectory has been regenerated since the last query.");
+
+  m.def(
+    "set_logging_enabled",
+    &dynamic_traj_generator::setLoggingEnabled,
+    py::arg("enabled"),
+    "Enable or disable runtime logging from the generator. Default: enabled. "
+    "Has no effect if the library was compiled with "
+    "-DDYNAMIC_TRAJECTORY_GENERATOR_ENABLE_LOGGING=OFF.");
+
+  m.def(
+    "set_log_sink",
+    [](py::object callback) {
+      if (callback.is_none()) {
+        dynamic_traj_generator::setLogSink(nullptr);
+        return;
+      }
+      auto cb = callback.cast<py::function>();
+      dynamic_traj_generator::setLogSink(
+        [cb](const std::string & msg) {
+          py::gil_scoped_acquire gil;
+          cb(msg);
+        });
+    },
+    py::arg("callback"),
+    "Install a Python callable as the log sink. The callable receives the "
+    "formatted message as a single string argument. Pass None to restore the "
+    "default sink (stdout).");
 }

@@ -1,20 +1,39 @@
 [build-system]
-requires = ["scikit-build-core[pyproject]"]
+requires = ["scikit-build-core>=0.8", "pybind11>=2.11"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "dynamic_trajectory_generator_py"
 version = "0.1.0"
-authors = [{ name = "Rafael Pérez Seguí", email = "r.psegui@upm.es" }]
-description = "Python bindings for Dynamic Trajectory Generator"
+description = "Python bindings for the Dynamic Trajectory Generator."
+authors = [
+    { name = "Rafael Perez-Segui", email = "r.psegui@upm.es" },
+    { name = "Miguel Fernández Cortizas", email = "miferco97@gmail.com" },
+]
 license = { text = "BSD-3-Clause" }
+requires-python = ">=3.8"
 dependencies = [
     "numpy>=1.22",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=7"]
+examples = ["matplotlib>=3.5"]
+
 [tool.scikit-build]
 cmake.minimum-version = "3.16"
-cmake.build-type = "Release"
-build-dir = "build"
-wheel.packages = []
-sdist.include = ["include/**", "src/**", "python/**", "CMakeLists.txt"]
+cmake.build-type      = "Release"
+build-dir             = "build/{wheel_tag}"
+wheel.packages        = ["python/dynamic_trajectory_generator_py"]
+sdist.include = [
+    "CMakeLists.txt",
+    "src/**",
+    "include/**",
+    "python/**",
+]
+
+[tool.pytest.ini_options]
+testpaths       = ["tests"]
+python_files    = "test_*.py"
+python_classes  = "Test*"
+python_functions = "test_*"

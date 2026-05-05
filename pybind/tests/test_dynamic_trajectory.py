@@ -26,17 +26,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Python bindings for the Dynamic Trajectory Generator."""
+"""Smoke tests for the dynamic_trajectory_generator_py bindings."""
 
 __authors__ = 'Rafael Pérez Seguí'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
-from ._dynamic_trajectory_generator_cpp import _DynamicTrajectory
-from .trajectory import DynamicTrajectory, TrajectoryReference
+import dynamic_trajectory_generator_py as dtg
 
-__all__ = [
-    'DynamicTrajectory',
-    'TrajectoryReference',
-    '_DynamicTrajectory',
-]
+
+def test_module_exposes_dynamic_trajectory() -> None:
+    """The module must expose DynamicTrajectory in __all__ and as an attribute."""
+    assert 'DynamicTrajectory' in dtg.__all__
+    assert hasattr(dtg, 'DynamicTrajectory')
+
+
+def test_dynamic_trajectory_default_constructor() -> None:
+    """Test that DynamicTrajectory is default-constructible."""
+    traj = dtg.DynamicTrajectory()
+    assert traj is not None

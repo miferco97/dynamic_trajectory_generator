@@ -57,3 +57,8 @@ endif()
 if (${PROJECT_NAME}_TESTS_ENABLED)
   add_subdirectory(tests)
 endif()
+
+option(BUILD_PYBIND "Build Python bindings (pybind11 module)" OFF)
+if(BUILD_PYBIND)
+  add_subdirectory(pybind)
+endif()

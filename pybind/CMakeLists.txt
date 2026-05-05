@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
-set(PROJECT_NAME _dynamic_trajectory_generator_cpp)
-project(${PROJECT_NAME})
+set(PYBIND_TARGET _dynamic_trajectory_generator_cpp)
+set(PY_PACKAGE    dynamic_trajectory_generator_py)
+project(${PYBIND_TARGET})
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-# set Release as default
+# Release as default
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -15,73 +16,90 @@ endif()
 # For shared libraries
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Dependencies
-find_package(Eigen3 REQUIRED)
+# Find dependencies
+set(PROJECT_DEPENDENCIES
+  Eigen3
+)
+
+foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
+  find_package(${DEPENDENCY} REQUIRED)
+endforeach()
+
 find_package(pybind11 CONFIG REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
-# Add the parent project as a subdirectory if the target is not already defined
-# (the target is already defined when the pybind folder is built together with
-# the parent project from an outer CMake tree).
+# Pull the C++ core library from the parent if not already a target.
 if(NOT TARGET dynamic_trajectory_generator)
-  set(BUILD_TESTING OFF CACHE BOOL "Disable tests in subprojects" FORCE)
+  set(BUILD_TESTING OFF CACHE BOOL "Disable tests in parent project" FORCE)
   add_subdirectory(
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${CMAKE_BINARY_DIR}/dynamic_trajectory_generator_build
   )
 endif()
 
-# Build the pybind11 extension
-pybind11_add_module(_dynamic_trajectory_generator_cpp src/module.cpp)
+# pybind11 module
+pybind11_add_module(${PYBIND_TARGET} src/module.cpp)
 
-target_include_directories(_dynamic_trajectory_generator_cpp PRIVATE
+target_include_directories(${PYBIND_TARGET} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-target_link_libraries(_dynamic_trajectory_generator_cpp PRIVATE dynamic_trajectory_generator)
-target_compile_features(_dynamic_trajectory_generator_cpp PRIVATE cxx_std_17)
+target_link_libraries(${PYBIND_TARGET} PRIVATE dynamic_trajectory_generator)
 
-# Embed an RPATH pointing to the installed package directory so that the
-# extension can locate its transitive shared library dependencies without
-# requiring LD_LIBRARY_PATH manipulation.
-set_target_properties(_dynamic_trajectory_generator_cpp PROPERTIES
+set_target_properties(${PYBIND_TARGET} PROPERTIES
   POSITION_INDEPENDENT_CODE ON
-  INSTALL_RPATH "$ORIGIN"
-  BUILD_WITH_INSTALL_RPATH TRUE
+  INSTALL_RPATH "\$ORIGIN"
 )
 
-# Install the Python package source tree (pure python wrappers)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python/dynamic_trajectory_generator_py/
-        DESTINATION ${SKBUILD_PLATLIB_DIR}/dynamic_trajectory_generator_py
+# Local mirror for PYTHONPATH usage. When PYBIND_PY_MIRROR_ROOT is set by a
+# parent project (umbrella build), all sub-pybinds share the same python/
+# tree. Otherwise fall back to the current binary dir.
+set(PYTHON_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/python/${PY_PACKAGE}")
+if(DEFINED PYBIND_PY_MIRROR_ROOT)
+  set(LOCAL_PY_MIRROR_ROOT "${PYBIND_PY_MIRROR_ROOT}")
+else()
+  set(LOCAL_PY_MIRROR_ROOT "${CMAKE_CURRENT_BINARY_DIR}/python")
+endif()
+set(PYTHON_PACKAGE_BUILD_DIR  "${LOCAL_PY_MIRROR_ROOT}/${PY_PACKAGE}")
+
+file(MAKE_DIRECTORY "${PYTHON_PACKAGE_BUILD_DIR}")
+set_target_properties(${PYBIND_TARGET} PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY "${PYTHON_PACKAGE_BUILD_DIR}"
 )
 
-# Install the compiled extension next to the Python package
-install(TARGETS _dynamic_trajectory_generator_cpp
-  LIBRARY DESTINATION ${SKBUILD_PLATLIB_DIR}/dynamic_trajectory_generator_py
-  RUNTIME DESTINATION ${SKBUILD_PLATLIB_DIR}/dynamic_trajectory_generator_py
-  ARCHIVE DESTINATION ${SKBUILD_PLATLIB_DIR}/dynamic_trajectory_generator_py
+add_custom_command(TARGET ${PYBIND_TARGET} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${PYTHON_PACKAGE_SOURCE_DIR}"
+    "${PYTHON_PACKAGE_BUILD_DIR}"
+  COMMENT "Mirroring ${PY_PACKAGE} sources to build tree"
 )
 
-# Also install the transitive shared libraries produced during the build so
-# that the wheel is self-contained. We force INSTALL_RPATH="$ORIGIN" on each
-# shared dependency so that, once co-located inside the installed wheel
-# directory, they can resolve their own NEEDED entries (e.g. libnlopt.so.0)
-# without requiring LD_LIBRARY_PATH. Targets built as STATIC/OBJECT libraries
-# are silently skipped by install(TARGETS ...) when requested as SHARED, so
-# this is robust against upstream changes in library type.
-foreach(_dep_target IN ITEMS dynamic_trajectory_generator mav_trajectory_generation nlopt)
-  if(TARGET ${_dep_target})
-    get_target_property(_dep_type ${_dep_target} TYPE)
-    if(_dep_type STREQUAL "SHARED_LIBRARY")
-      set_target_properties(${_dep_target} PROPERTIES
-        INSTALL_RPATH "$ORIGIN"
-        BUILD_WITH_INSTALL_RPATH TRUE
-      )
-      install(TARGETS ${_dep_target}
-        LIBRARY DESTINATION ${SKBUILD_PLATLIB_DIR}/dynamic_trajectory_generator_py
-        RUNTIME DESTINATION ${SKBUILD_PLATLIB_DIR}/dynamic_trajectory_generator_py
-      )
+# pip install via scikit-build-core
+if(DEFINED SKBUILD_PLATLIB_DIR)
+  install(DIRECTORY "${PYTHON_PACKAGE_SOURCE_DIR}/"
+          DESTINATION "${SKBUILD_PLATLIB_DIR}/${PY_PACKAGE}"
+  )
+  install(TARGETS ${PYBIND_TARGET}
+    LIBRARY DESTINATION "${SKBUILD_PLATLIB_DIR}/${PY_PACKAGE}"
+    RUNTIME DESTINATION "${SKBUILD_PLATLIB_DIR}/${PY_PACKAGE}"
+    ARCHIVE DESTINATION "${SKBUILD_PLATLIB_DIR}/${PY_PACKAGE}"
+  )
+  # Install transitive shared libraries so the wheel is self-contained.
+  # RPATH is set to $ORIGIN so co-located libs resolve each other at runtime.
+  foreach(_dep_target IN ITEMS dynamic_trajectory_generator mav_trajectory_generation nlopt)
+    if(TARGET ${_dep_target})
+      get_target_property(_dep_type ${_dep_target} TYPE)
+      if(_dep_type STREQUAL "SHARED_LIBRARY")
+        set_target_properties(${_dep_target} PROPERTIES
+          INSTALL_RPATH "\$ORIGIN"
+          BUILD_WITH_INSTALL_RPATH TRUE
+        )
+        install(TARGETS ${_dep_target}
+          LIBRARY DESTINATION "${SKBUILD_PLATLIB_DIR}/${PY_PACKAGE}"
+          RUNTIME DESTINATION "${SKBUILD_PLATLIB_DIR}/${PY_PACKAGE}"
+        )
+      endif()
     endif()
-  endif()
-endforeach()
+  endforeach()
+endif()

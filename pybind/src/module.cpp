@@ -46,7 +46,7 @@ PYBIND11_MODULE(_dynamic_trajectory_generator_cpp, m)
 {
   m.doc() = "Python bindings for Dynamic Trajectory Generator";
 
-  py::class_<dynamic_traj_generator::DynamicTrajectoryBind>(m, "DynamicTrajectory")
+  py::class_<dynamic_traj_generator::DynamicTrajectoryBind>(m, "_DynamicTrajectory")
     .def(py::init<>())
     .def(
       "generate_trajectory",

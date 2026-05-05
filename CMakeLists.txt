@@ -19,10 +19,17 @@ add_subdirectory(subpackages/mav_trajectory_generation)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
-set(SOURCE_CPP_FILES 
+set(SOURCE_CPP_FILES
   src/dynamic_trajectory.cpp
   src/dynamic_waypoint.cpp
+  src/utils/logging_utils.cpp
 )
+
+# Logging toggle: define __SCREEN_OUTPUT__ at compile time. When OFF, the
+# DYNAMIC_LOG(...) macro expands to a no-op and no message is emitted. The user
+# can override the default with: cmake -DDYNAMIC_TRAJECTORY_GENERATOR_ENABLE_LOGGING=OFF
+option(DYNAMIC_TRAJECTORY_GENERATOR_ENABLE_LOGGING
+  "Enable on-screen logging from DYNAMIC_LOG (defines __SCREEN_OUTPUT__)" ON)
 
 include_directories(
   include
@@ -38,6 +45,9 @@ include_directories(
 add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})
 target_link_libraries(${PROJECT_NAME} mav_trajectory_generation nlopt )
 target_include_directories(${PROJECT_NAME} PUBLIC include include/${PROJECT_NAME} ${EIGEN3_INCLUDE_DIRS} )
+if(DYNAMIC_TRAJECTORY_GENERATOR_ENABLE_LOGGING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC __SCREEN_OUTPUT__)
+endif()
 
 #check if tests are enabled
 if (${PROJECT_NAME}_PROFILING_ENABLED)

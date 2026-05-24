@@ -6,8 +6,9 @@ else (${NLopt_FOUND})
   MESSAGE(STATUS "Could not locate NLopt.")
   include(FetchContent)
   FetchContent_Declare(
-    NLopt
-    URL https://github.com/stevengj/NLopt/archive/09b3c2a6da71cabcb98d2c8facc6b83d2321ed71.zip
+    nlopt
+    URL https://github.com/stevengj/nlopt/archive/refs/tags/v2.10.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   # For Windows: Prevent overriding the parent project's compiler/linker settings
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

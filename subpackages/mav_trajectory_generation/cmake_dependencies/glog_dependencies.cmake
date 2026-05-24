@@ -6,7 +6,8 @@ else (${glog_FOUND})
   include(FetchContent)
   FetchContent_Declare(
     glog
-    URL https://github.com/google/glog/archive/4ffa98388f8a28c55b0c8acfbba5f62df954c2a4.zip
+    URL https://github.com/google/glog/archive/refs/tags/v0.7.1.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   # For Windows: Prevent overriding the parent project's compiler/linker settings
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

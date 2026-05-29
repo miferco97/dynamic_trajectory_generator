@@ -302,17 +302,36 @@ namespace dynamic_traj_generator
     float max_speed = parameters_.speed;
     parameters_mutex_.unlock();
 
-    /* auto vertices = extractVerticesFromWaypoints(waypoints); */
     auto vertices = extractVerticesFromWaypoints(next_trajectory_waypoint_);
-    if (vertices.size() < 2)
-    {
-      throw std::runtime_error("Not enough waypoints");
+
+    // estimateSegmentTimes estimates each segment independently (see
+    // estimateSegmentTimesNfabian), so the per-segment scaling below produces
+    // the exact same times as the global call for non-low-speed segments.
+    std::vector<double> segment_times;
+    if ((ls_velocity_factor_ != 1.0) || (ls_acceleration_factor_ != 1.0)) {
+      // Low-speed modifiers active: estimate each segment once with its own
+      // limits. A segment whose target waypoint name contains "ls" uses the
+      // reduced velocity/acceleration so the drone slows down there; the rest
+      // use the nominal limits. No segment is estimated twice.
+      segment_times.reserve(vertices.size() > 0 ? vertices.size() - 1 : 0);
+      for (size_t i = 0; i + 1 < vertices.size(); ++i) {
+        const bool low = i + 1 < next_trajectory_waypoint_.size() &&
+                         next_trajectory_waypoint_[i + 1].getName().find("ls") != std::string::npos;
+        const double v = low ? max_speed * ls_velocity_factor_ : max_speed;
+        const double a = low ? this->a_max_ * ls_acceleration_factor_ : this->a_max_;
+        const mav_trajectory_generation::Vertex::Vector segment = {vertices[i], vertices[i + 1]};
+        segment_times.push_back(
+            mav_trajectory_generation::estimateSegmentTimes(segment, v, a).front());
+      }
+    } else {
+      // No low-speed factors: single global estimate
+      segment_times =
+          mav_trajectory_generation::estimateSegmentTimes(vertices, max_speed, this->a_max_);
     }
+
     const int N = 10;
     std::shared_ptr<mav_trajectory_generation::Trajectory> trajectory =
         std::make_shared<mav_trajectory_generation::Trajectory>();
-    auto segment_times =
-        mav_trajectory_generation::estimateSegmentTimes(vertices, max_speed, this->a_max_);
     // Optimizer
     if (lineal_optimization)
     {

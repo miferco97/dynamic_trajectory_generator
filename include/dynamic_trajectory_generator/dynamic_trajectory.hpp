@@ -90,6 +90,9 @@ class DynamicTrajectory {
   const int dimension_ = 3;
   std::atomic_bool from_scratch_ = true;
   const double a_max_ = MAV_MAX_ACCEL;
+  // Low-speed segment factors
+  double ls_velocity_factor_ = 1.0;
+  double ls_acceleration_factor_ = 1.0;
   Eigen::Vector3d vehicle_position_;
 
   mutable std::mutex traj_mutex_;
@@ -177,6 +180,12 @@ class DynamicTrajectory {
 
   // getters
   void setSpeed(double speed);
+  // Apply ls_velocity_factor * v_max and ls_acceleration_factor * a_max
+  // on segments whose next waypoint's name contains the substring "ls".
+  // Defaults are 1.0 (no-op). Setters so a consumer can configure them
+  // on each generator instance after construction.
+  inline void setLowSpeedVelocityFactor(double factor) { ls_velocity_factor_ = factor; }
+  inline void setLowSpeedAccelerationFactor(double factor) { ls_acceleration_factor_ = factor; }
   double getMaxTime();
   double getMinTime();
   DynamicWaypoint::Deque getDynamicWaypoints();
